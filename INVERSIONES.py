@@ -1,51 +1,10 @@
 import datetime
 import io
-import os
-import socket
-import subprocess
-import sys
 
 import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-
-# ---------------------------------------------------------
-# AUTO-LANZADOR AUTOMÁTICO EN WINDOWS (DOBLE CLICK)
-# ---------------------------------------------------------
-if (
-    __name__ == "__main__"
-    and not os.environ.get("STREAMLIT_RUNNING")
-    and not st.runtime.exists()
-):
-    os.environ["STREAMLIT_RUNNING"] = "true"
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = "127.0.0.1"
-    finally:
-        s.close()
-
-    os.system("cls" if os.name == "nt" else "clear")
-    print("=" * 60)
-    print("  DASHBOARD: TODAS MIS INVERSIONES")
-    print("=" * 60)
-    print("\n  PARA VER EN TU CELULAR O NAVEGADOR, ABRE ESTA DIRECCIÓN:\n")
-    print(f"  👉  http://{IP}:8501  👈\n")
-    print("=" * 60)
-
-    script_path = os.path.abspath(__file__)
-    subprocess.run([
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        script_path,
-        "--server.address=0.0.0.0",
-    ])
-    sys.exit()
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
