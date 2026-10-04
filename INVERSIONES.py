@@ -4,7 +4,6 @@ import os
 import socket
 import subprocess
 import sys
-import webbrowser
 
 import pandas as pd
 import requests
@@ -38,17 +37,14 @@ if __name__ == "__main__" and not is_running_in_streamlit:
     print("=" * 60)
     print("  DASHBOARD: TODAS MIS INVERSIONES")
     print("=" * 60)
-    print("\n  Iniciando servidor Streamlit y abriendo navegador...\n")
+    print("\n  Iniciando servidor Streamlit...\n")
     print(f"  👉  Navegador local:  http://localhost:8501")
     print(f"  👉  Desde el celular: http://{IP}:8501\n")
     print("=" * 60)
 
     script_path = os.path.abspath(__file__)
     
-    # Abrir ventana automática en tu navegador web predeterminado
-    webbrowser.open("http://localhost:8501")
-    
-    # Lanzar Streamlit
+    # Lanzar Streamlit (Streamlit abre la pestaña del navegador automáticamente)
     subprocess.run([
         sys.executable,
         "-m",
