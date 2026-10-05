@@ -331,7 +331,7 @@ df_kpis = pd.DataFrame([
 ])
 
 # ---------------------------------------------------------
-# RENDERIZADO TABLA 1 (RESUMEN KPIS - 1 COLUMNA FIJA)
+# RENDERIZADO TABLA 1 (RESUMEN KPIS - FILAS ANGOSTAS Y COMPACTAS)
 # ---------------------------------------------------------
 def render_kpi_table_html(df):
     css = """<style>
@@ -344,32 +344,34 @@ def render_kpi_table_html(df):
 .kpi-tbl-sticky {
     width: 100%; border-collapse: collapse !important; border-spacing: 0 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 0.88rem; margin: 0; table-layout: auto !important;
+    font-size: 0.85rem; margin: 0; table-layout: auto !important;
 }
 .kpi-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
-    border: 1px solid #475569 !important; padding: 10px 8px !important;
+    border: 1px solid #475569 !important; padding: 5px 6px !important;
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
 }
 .kpi-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
-    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
+    width: 115px !important; min-width: 115px !important; max-width: 115px !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
     white-space: normal !important; word-wrap: break-word !important;
 }
 .kpi-tbl-sticky td {
-    position: static !important; z-index: auto !important; padding: 9px 10px !important;
+    position: static !important; z-index: auto !important; padding: 4px 6px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
     text-align: center !important; color: #000000 !important; white-space: nowrap !important;
+    line-height: 1.15 !important;
 }
 .kpi-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important;
     font-weight: 800 !important; text-align: center !important;
-    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
+    width: 115px !important; min-width: 115px !important; max-width: 115px !important;
     background-color: #FACC15 !important; color: #000000 !important;
     border: 1px solid #334155 !important; box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important;
     background-clip: padding-box !important; white-space: normal !important; word-wrap: break-word !important;
+    padding: 4px 6px !important; line-height: 1.15 !important;
 }
 .row-excel-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 700 !important; }
 .row-excel-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
@@ -386,7 +388,7 @@ def render_kpi_table_html(df):
 
     html = f'{css}<div class="kpi-tbl-wrapper"><table class="kpi-tbl-sticky">'
     html += '<thead><tr>'
-    html += '<th style="width: 125px !important;">Métrica</th>'
+    html += '<th style="width: 115px !important;">Métrica</th>'
     html += '<th>Resultado</th>'
     html += '</tr></thead><tbody>'
 
@@ -404,7 +406,7 @@ def render_kpi_table_html(df):
 
         html += f'<tr class="{row_cls}">'
         html += f'<td class="lbl-sticky-col">{metrica}</td>'
-        html += f'<td style="font-size: 1.05rem; font-weight: 800;">{res}</td>'
+        html += f'<td style="font-size: 0.95rem; font-weight: 800;">{res}</td>'
         html += '</tr>'
 
     html += '</tbody></table></div>'
@@ -425,6 +427,25 @@ st.markdown(
     "<h4 style='color: #38BDF8 !important; margin-bottom: 4px;'>📊 Tablas Informativas</h4>",
     unsafe_allow_html=True,
 )
+
+# HELPER: FORMATO DE TÍTULOS EN DOS LÍNEAS
+def dos_lineas_titulo(titulo):
+    reemplazos = {
+        "Año (FECHA FIN)": "Año<br>(FECHA FIN)",
+        "Ahorro Programado": "Ahorro<br>Programado",
+        "Ahorros Vista": "Ahorros<br>Vista",
+        "AustroFuturo": "Austro<br>Futuro",
+        "Plazo Fijo": "Plazo<br>Fijo",
+        "Total general": "Total<br>general",
+        "Etiquetas de fila": "Etiquetas<br>de fila",
+        "Suma de INTERESE NETO": "Suma de<br>INTERESE NETO"
+    }
+    if titulo in reemplazos:
+        return reemplazos[titulo]
+    if " " in titulo and "<br>" not in titulo:
+        partes = titulo.split(" ", 1)
+        return f"{partes[0]}<br>{partes[1]}"
+    return titulo
 
 # TABLA DINÁMICA 1: AÑO vs TIPO RENTA FIJA
 def render_pivot_interes_neto_html(df_data):
@@ -460,33 +481,39 @@ def render_pivot_interes_neto_html(df_data):
 .pvt-tbl-sticky {
     width: 100%; border-collapse: collapse !important; border-spacing: 0 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 0.88rem; margin: 0; table-layout: auto !important;
+    font-size: 0.85rem; margin: 0; table-layout: auto !important;
 }
+/* Encabezados Fijos (Fila 1) - Centrado y Ancho Inteligente */
 .pvt-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
-    border: 1px solid #475569 !important; padding: 8px 10px !important;
+    border: 1px solid #475569 !important; padding: 6px 10px !important;
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
+    line-height: 1.2 !important;
 }
+/* Esquina Superior Izquierda (Fija 2D) */
 .pvt-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
-    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
-    white-space: normal !important; word-wrap: break-word !important;
-    background-color: #1E293B !important;
+    white-space: nowrap !important; background-color: #1E293B !important;
 }
+
+/* Celdas de datos normales - Centrados y Ancho Inteligente */
 .pvt-tbl-sticky td {
-    position: static !important; z-index: auto !important; padding: 8px 10px !important;
+    position: static !important; z-index: auto !important; padding: 6px 10px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
-    text-align: right !important; color: #000000 !important; white-space: nowrap !important;
+    text-align: center !important; color: #000000 !important; white-space: nowrap !important;
 }
+
+/* Columna 1 Fija (Años) - Centrado */
 .pvt-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
-    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
     text-align: center !important; border: 1px solid #334155 !important;
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
-    white-space: normal !important; word-wrap: break-word !important;
+    white-space: nowrap !important;
 }
+
+/* Filas normales alternadas */
 .row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
@@ -496,15 +523,16 @@ def render_pivot_interes_neto_html(df_data):
 .row-pvt-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-white .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
+/* Fila de Total General */
 .row-pvt-total td { background-color: #BAE6FD !important; color: #000000 !important; font-weight: 900 !important; }
 .row-pvt-total .lbl-sticky-col { background-color: #38BDF8 !important; color: #000000 !important; font-weight: 900 !important; }
 </style>"""
 
     html = f'{css}<div class="pvt-tbl-wrapper"><table class="pvt-tbl-sticky">'
     html += '<thead><tr>'
-    html += '<th style="width: 125px !important;">Año (FECHA FIN)</th>'
+    html += f'<th>{dos_lineas_titulo("Año (FECHA FIN)")}</th>'
     for col in cols:
-        html += f'<th>{col}</th>'
+        html += f'<th>{dos_lineas_titulo(col)}</th>'
     html += '</tr></thead><tbody>'
 
     row_classes = ["row-pvt-green", "row-pvt-yellow", "row-pvt-white"]
@@ -513,8 +541,10 @@ def render_pivot_interes_neto_html(df_data):
         is_total = (year == "Total general")
         row_cls = "row-pvt-total" if is_total else row_classes[idx % len(row_classes)]
 
+        year_str = "Total<br>general" if is_total else str(year)
+
         html += f'<tr class="{row_cls}">'
-        html += f'<td class="lbl-sticky-col">{year}</td>'
+        html += f'<td class="lbl-sticky-col">{year_str}</td>'
 
         for col in cols:
             val = row_data[col]
@@ -556,33 +586,38 @@ def render_pivot_entidad_html(df_data):
 .pvt-tbl-sticky {
     width: 100%; border-collapse: collapse !important; border-spacing: 0 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 0.88rem; margin: 0; table-layout: auto !important;
+    font-size: 0.85rem; margin: 0; table-layout: auto !important;
 }
+/* Encabezados Fijos (Fila 1) - Centrado y Ancho Inteligente */
 .pvt-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
-    border: 1px solid #475569 !important; padding: 8px 10px !important;
+    border: 1px solid #475569 !important; padding: 6px 10px !important;
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
+    line-height: 1.2 !important;
 }
+/* Esquina Superior Izquierda (Fija 2D) */
 .pvt-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
-    width: 140px !important; min-width: 140px !important; max-width: 140px !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
-    white-space: normal !important; word-wrap: break-word !important;
-    background-color: #1E293B !important;
+    white-space: nowrap !important; background-color: #1E293B !important;
 }
+
+/* Celdas de datos normales - Centrados */
 .pvt-tbl-sticky td {
-    position: static !important; z-index: auto !important; padding: 8px 10px !important;
+    position: static !important; z-index: auto !important; padding: 6px 10px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
-    text-align: right !important; color: #000000 !important; white-space: nowrap !important;
+    text-align: center !important; color: #000000 !important; white-space: nowrap !important;
 }
+
+/* Columna 1 Fija (Entidades) - Centrado */
 .pvt-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
-    width: 140px !important; min-width: 140px !important; max-width: 140px !important;
     text-align: center !important; border: 1px solid #334155 !important;
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
-    white-space: normal !important; word-wrap: break-word !important;
+    white-space: nowrap !important;
 }
+
 .row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
@@ -598,8 +633,8 @@ def render_pivot_entidad_html(df_data):
 
     html = f'{css}<div class="pvt-tbl-wrapper"><table class="pvt-tbl-sticky">'
     html += '<thead><tr>'
-    html += '<th style="width: 140px !important;">Etiquetas de fila</th>'
-    html += '<th>Suma de INTERESE NETO</th>'
+    html += f'<th>{dos_lineas_titulo("Etiquetas de fila")}</th>'
+    html += f'<th>{dos_lineas_titulo("Suma de INTERESE NETO")}</th>'
     html += '</tr></thead><tbody>'
 
     row_classes = ["row-pvt-green", "row-pvt-yellow", "row-pvt-white"]
@@ -610,10 +645,11 @@ def render_pivot_entidad_html(df_data):
         is_total = (entidad == "Total general")
         row_cls = "row-pvt-total" if is_total else row_classes[idx % len(row_classes)]
 
+        entidad_str = "Total<br>general" if is_total else entidad.replace(" ", "<br>")
         val_str = "-" if (val == 0.0 or pd.isna(val)) else f"${val:,.2f}"
 
         html += f'<tr class="{row_cls}">'
-        html += f'<td class="lbl-sticky-col">{entidad}</td>'
+        html += f'<td class="lbl-sticky-col">{entidad_str}</td>'
         html += f'<td style="font-weight: 800;">{val_str}</td>'
         html += '</tr>'
 
