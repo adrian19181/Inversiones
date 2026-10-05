@@ -147,6 +147,18 @@ st.markdown(
             background-color: #107C41 !important;
             border-color: #107C41 !important;
         }
+
+        /* HABILITAR SCROLL VERTICAL NATIVO TÁCTIL EN GRÁFICOS Y DESACTIVAR CAPTURA DE GESTOS */
+        div[data-testid="stPlotlyChart"], 
+        div[data-testid="stPlotlyChart"] * {
+            touch-action: pan-y !important;
+        }
+        div[data-testid="stPlotlyChart"] .nsewdrag,
+        div[data-testid="stPlotlyChart"] .drag,
+        div[data-testid="stPlotlyChart"] .draglayer {
+            pointer-events: none !important;
+        }
+
         /* AJUSTES MÓVIL */
         @media (max-width: 480px) {
             .block-container { padding: 0.5rem 0.2rem 1.5rem 0.2rem !important; }
@@ -821,6 +833,7 @@ with tab_chart_entidad:
         title_x=0.5,
         title_xanchor="center",
         title_font=dict(size=20, color="#FFFFFF"),
+        dragmode=False,
         legend_title_text="",
         legend=dict(
             orientation="h",
@@ -834,7 +847,6 @@ with tab_chart_entidad:
         height=450
     )
     
-    # Bloquear zoom/pan en táctil y ocultar modebar
     st.plotly_chart(
         fig_entidad,
         use_container_width=True,
@@ -894,6 +906,7 @@ with tab_chart_ano:
         title_font=dict(size=18, color="#FFFFFF"),
         bargap=0.15,          # Maximiza el grosor de las barras reduciendo espacios
         bargroupgap=0.0,      # Sin separación entre barras del mismo año para mayor grosor
+        dragmode=False,       # Desactiva el modo de arrastre/pan de Plotly
         legend_title_text="",
         legend=dict(
             orientation="h",
@@ -909,8 +922,8 @@ with tab_chart_ano:
             tickprefix="$", 
             showgrid=True, 
             gridcolor="#334155", 
-            fixedrange=True,
-            range=[0, max_val * 1.28] # Margen extra a la derecha para que ningún valor se corte
+            fixedrange=True,   # Desactiva el escalado/zoom en eje X
+            range=[0, max_val * 1.28] # Margen extra a la derecha
         ),
         margin=dict(l=10, r=35, t=50, b=80),
         height=820            # Altura significativamente mayor para engrosar bastante cada barra
@@ -951,7 +964,6 @@ with tab_chart_tipo:
         title="SUMA DE INTERESE NETO"
     )
 
-    # Posicionamiento inteligente del texto: dentro si cabe, a la derecha si la barra es corta
     fig_tipo.update_traces(
         textposition='auto',
         textfont_size=13,
@@ -969,14 +981,13 @@ with tab_chart_tipo:
         title_xanchor="center",
         title_font=dict(size=20, color="#FFFFFF"),
         showlegend=False,
-        # fixedrange=True para evitar zoom/pan al tocar en pantallas móviles
+        dragmode=False,
         xaxis=dict(title="", showgrid=True, gridcolor="#334155", tickprefix="$", fixedrange=True),
         yaxis=dict(title="", fixedrange=True),
         margin=dict(l=10, r=60, t=50, b=30),
         height=380
     )
 
-    # Bloquear interacciones de zoom en móvil y ocultar barra de botones flotante
     st.plotly_chart(
         fig_tipo,
         use_container_width=True,
@@ -1146,5 +1157,4 @@ def render_detalles_inversiones_html(df):
     html += '</tbody></table></div>'
     return html.replace("\n", " ")
 
-# Imprimir la segunda tabla 
 st.markdown(render_detalles_inversiones_html(df_detalles), unsafe_allow_html=True)
