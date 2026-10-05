@@ -861,6 +861,9 @@ with tab_chart_ano:
     )
     df_chart_grouped["Texto_Monto"] = df_chart_grouped["INTERESE NETO"].apply(lambda x: f"${x:,.2f}" if x > 0 else "")
 
+    # Calcular valor máximo para margen dinámico del eje X
+    max_val = df_chart_grouped["INTERESE NETO"].max() if not df_chart_grouped.empty else 100.0
+
     fig_ano = px.bar(
         df_chart_grouped,
         y="Año",
@@ -873,11 +876,13 @@ with tab_chart_ano:
         color_discrete_sequence=["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4"]
     )
 
+    # Posicionamiento inteligente del texto: dentro si cabe, fuera a la derecha si la barra es corta
     fig_ano.update_traces(
         textposition='auto',
+        insidetextanchor='end',
         textfont_size=11,
-        textfont_color='white',
-        marker=dict(line=dict(color='#0F172A', width=1))
+        cliponaxis=False,
+        marker=dict(line=dict(color='#0F172A', width=0.5))
     )
 
     fig_ano.update_layout(
@@ -888,19 +893,28 @@ with tab_chart_ano:
         title_x=0.5,
         title_xanchor="center",
         title_font=dict(size=18, color="#FFFFFF"),
+        bargap=0.18,          # Reduce espacio entre años para engrosar barras
+        bargroupgap=0.03,     # Espaciado fino entre barras del mismo grupo
         legend_title_text="",
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.12,
             xanchor="center",
             x=0.5,
-            font=dict(size=13)
+            font=dict(size=12)
         ),
         yaxis=dict(title="", type="category", autorange="reversed", fixedrange=True),
-        xaxis=dict(title="", tickprefix="$", showgrid=True, gridcolor="#334155", fixedrange=True),
-        margin=dict(l=10, r=20, t=50, b=80),
-        height=480
+        xaxis=dict(
+            title="", 
+            tickprefix="$", 
+            showgrid=True, 
+            gridcolor="#334155", 
+            fixedrange=True,
+            range=[0, max_val * 1.20] # Margen dinámico para no cortar textos externos
+        ),
+        margin=dict(l=10, r=25, t=50, b=80),
+        height=620            # Altura suficiente para que las barras sean anchas y claras
     )
 
     st.plotly_chart(
@@ -1063,7 +1077,7 @@ def render_detalles_inversiones_html(df):
 .row-det-yellow td { background-color: #FEF3C7 !important; font-weight: 700 !important; }
 .row-det-yellow .sticky-col-1, .row-det-yellow .sticky-col-2 { background-color: #FACC15 !important; }
 
-.row-det-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 700 !important; }
+.row-det-white td { background-color: #F8FAFC !important; font-weight: 700 !important; }
 .row-det-white .sticky-col-1, .row-det-white .sticky-col-2 { background-color: #FACC15 !important; }
 </style>"""
 
@@ -1098,7 +1112,7 @@ def render_detalles_inversiones_html(df):
         i_neto = row.get("INTERESE NETO", 0.0)
         n_recibir = row.get("NETO A RECIBIR", 0.0)
         
-        # Formateo multilínea de Col 1 y 2
+        # Formateo multilineal de Col 1 y 2
         tipo_html = tipo.replace(" ", "<br>")
         if tipo_html == "AustroFuturo": tipo_html = "Austro<br>Futuro"
         entidad_html = entidad.replace(" ", "<br>")
