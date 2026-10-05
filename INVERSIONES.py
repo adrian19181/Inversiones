@@ -861,7 +861,7 @@ with tab_chart_ano:
     )
     df_chart_grouped["Texto_Monto"] = df_chart_grouped["INTERESE NETO"].apply(lambda x: f"${x:,.2f}" if x > 0 else "")
 
-    # Calcular valor máximo para margen dinámico del eje X
+    # Calcular valor máximo para margen dinámico holgado del eje X
     max_val = df_chart_grouped["INTERESE NETO"].max() if not df_chart_grouped.empty else 100.0
 
     fig_ano = px.bar(
@@ -876,11 +876,10 @@ with tab_chart_ano:
         color_discrete_sequence=["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4"]
     )
 
-    # Posicionamiento inteligente del texto: dentro si cabe, fuera a la derecha si la barra es corta
+    # Ubicar SIEMPRE los valores fuera a la derecha de la barra para máxima legibilidad
     fig_ano.update_traces(
-        textposition='auto',
-        insidetextanchor='end',
-        textfont_size=11,
+        textposition='outside',
+        textfont=dict(size=12, color='#FFFFFF'),
         cliponaxis=False,
         marker=dict(line=dict(color='#0F172A', width=0.5))
     )
@@ -893,13 +892,13 @@ with tab_chart_ano:
         title_x=0.5,
         title_xanchor="center",
         title_font=dict(size=18, color="#FFFFFF"),
-        bargap=0.18,          # Reduce espacio entre años para engrosar barras
-        bargroupgap=0.03,     # Espaciado fino entre barras del mismo grupo
+        bargap=0.15,          # Maximiza el grosor de las barras reduciendo espacios
+        bargroupgap=0.0,      # Sin separación entre barras del mismo año para mayor grosor
         legend_title_text="",
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.12,
+            y=-0.10,
             xanchor="center",
             x=0.5,
             font=dict(size=12)
@@ -911,10 +910,10 @@ with tab_chart_ano:
             showgrid=True, 
             gridcolor="#334155", 
             fixedrange=True,
-            range=[0, max_val * 1.20] # Margen dinámico para no cortar textos externos
+            range=[0, max_val * 1.28] # Margen extra a la derecha para que ningún valor se corte
         ),
-        margin=dict(l=10, r=25, t=50, b=80),
-        height=620            # Altura suficiente para que las barras sean anchas y claras
+        margin=dict(l=10, r=35, t=50, b=80),
+        height=820            # Altura significativamente mayor para engrosar bastante cada barra
     )
 
     st.plotly_chart(
