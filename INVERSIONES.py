@@ -112,7 +112,7 @@ st.markdown(
         /* SELECTBOX / DROPDOWN Y PESTAÑAS */
         div[data-testid="stSelectbox"] label p, div[data-testid="stRadio"] label p {
             color: #00E676 !important;
-            font-size: 0.95rem !important;
+            font-size: 1.05rem !important;
             font-weight: 800 !important;
         }
 
@@ -123,6 +123,7 @@ st.markdown(
             border-radius: 6px 6px 0 0 !important;
             padding: 8px 12px !important;
             font-weight: 700 !important;
+            font-size: 0.95rem !important;
         }
         button[data-baseweb="tab"][aria-selected="true"] {
             background-color: #0F172A !important;
@@ -788,6 +789,18 @@ tab_chart_entidad, tab_chart_mas = st.tabs([
     "➕ Más Gráficos"
 ])
 
+# Paleta de colores vivos y saturados (Alto contraste para letras blancas)
+PALETA_COLORES_VIVOS = [
+    "#0284C7",  # Azul Celeste
+    "#D97706",  # Ámbar / Naranja
+    "#059669",  # Verde Esmeralda
+    "#7C3AED",  # Violeta Intenso
+    "#DB2777",  # Rosa
+    "#0891B2",  # Cian
+    "#EA580C",  # Naranja Quemado
+    "#4F46E5",  # Índigo
+]
+
 with tab_chart_entidad:
     df_chart_entidad = df_datos.dropna(subset=["Entidad"]).groupby("Entidad", as_index=False)["INTERESE NETO"].sum()
     
@@ -795,13 +808,13 @@ with tab_chart_entidad:
         df_chart_entidad,
         names="Entidad",
         values="INTERESE NETO",
-        color_discrete_sequence=["#0E628B", "#E67E22", "#1E824C", "#D35400", "#2980B9", "#8E44AD"]
+        color_discrete_sequence=PALETA_COLORES_VIVOS
     )
     
     fig_entidad.update_traces(
         textposition='inside',
         textinfo='percent',
-        textfont_size=14,
+        textfont_size=16,
         textfont_color='white',
         marker=dict(line=dict(color='#0F172A', width=2))
     )
@@ -810,15 +823,19 @@ with tab_chart_entidad:
         template="plotly_dark",
         paper_bgcolor="#0F172A",
         plot_bgcolor="#0F172A",
-        font=dict(color="#FFFFFF", size=13),
+        font=dict(color="#FFFFFF", size=15),
         title=dict(
             text="Total",
             x=0.5,
             xanchor="center",
             font=dict(size=22, color="#FFFFFF")
         ),
-        legend_title_text="Entidad",
+        legend_title=dict(
+            text="Entidad",
+            font=dict(size=17, color="#FFFFFF")
+        ),
         legend=dict(
+            font=dict(size=16, color="#FFFFFF"),
             orientation="v",
             yanchor="middle",
             y=0.5,
@@ -826,10 +843,20 @@ with tab_chart_entidad:
             x=0.85
         ),
         margin=dict(l=20, r=20, t=50, b=20),
-        height=380
+        height=400,
+        dragmode=False
     )
     
-    st.plotly_chart(fig_entidad, use_container_width=True)
+    st.plotly_chart(
+        fig_entidad,
+        use_container_width=True,
+        config={
+            "scrollZoom": False,
+            "displayModeBar": False,
+            "doubleClick": False,
+            "showAxisDragHandles": False,
+        }
+    )
 
 with tab_chart_mas:
     st.info("Pestaña disponible para agregar más gráficos dinámicos.")
