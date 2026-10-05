@@ -783,8 +783,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_chart_entidad, tab_chart_tipo, tab_chart_mas = st.tabs([
+tab_chart_entidad, tab_chart_ano_tipo, tab_chart_tipo, tab_chart_mas = st.tabs([
     "🥧 Interés Neto por Entidad",
+    "📊 Interés Neto por Año y Tipo",
     "📊 Interés Neto por Tipo de Renta",
     "➕ Más Gráficos"
 ])
@@ -837,6 +838,72 @@ with tab_chart_entidad:
     # Bloquear zoom/pan en táctil y ocultar modebar
     st.plotly_chart(
         fig_entidad,
+        use_container_width=True,
+        config={
+            'displayModeBar': False,
+            'scrollZoom': False,
+            'doubleClick': False
+        }
+    )
+
+with tab_chart_ano_tipo:
+    df_chart_ano = df_datos.dropna(subset=["FECHA FIN", "Tipo Renta Fija"]).copy()
+    df_chart_ano["Año"] = df_chart_ano["FECHA FIN"].dt.year.astype(int).astype(str)
+    
+    df_chart_grouped = (
+        df_chart_ano.groupby(["Año", "Tipo Renta Fija"], as_index=False)["INTERESE NETO"]
+        .sum()
+    )
+    
+    # Formatear el nombre del tipo para la leyenda multilínea
+    df_chart_grouped["Tipo_Leyenda"] = df_chart_grouped["Tipo Renta Fija"].apply(
+        lambda x: "Austro<br>Futuro" if str(x).strip() == "AustroFuturo" else str(x).strip().replace(" ", "<br>")
+    )
+    df_chart_grouped["Texto_Monto"] = df_chart_grouped["INTERESE NETO"].apply(lambda x: f"${x:,.2f}" if x > 0 else "")
+
+    fig_ano_tipo = px.bar(
+        df_chart_grouped,
+        x="Año",
+        y="INTERESE NETO",
+        color="Tipo_Leyenda",
+        barmode="group",
+        text="Texto_Monto",
+        title="SUMA DE INTERESE NETO POR AÑO Y TIPO",
+        color_discrete_sequence=["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4"]
+    )
+
+    fig_ano_tipo.update_traces(
+        textposition='outside',
+        textfont_size=11,
+        textfont_color='white',
+        marker=dict(line=dict(color='#0F172A', width=1))
+    )
+
+    fig_ano_tipo.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="#0F172A",
+        plot_bgcolor="#0F172A",
+        font=dict(color="#FFFFFF", size=13),
+        title_x=0.5,
+        title_xanchor="center",
+        title_font=dict(size=18, color="#FFFFFF"),
+        legend_title_text="",
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.22,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=14)
+        ),
+        xaxis=dict(title="", type="category", fixedrange=True),
+        yaxis=dict(title="", tickprefix="$", showgrid=True, gridcolor="#334155", fixedrange=True),
+        margin=dict(l=10, r=10, t=50, b=90),
+        height=450
+    )
+
+    st.plotly_chart(
+        fig_ano_tipo,
         use_container_width=True,
         config={
             'displayModeBar': False,
