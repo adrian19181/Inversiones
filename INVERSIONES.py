@@ -44,7 +44,7 @@ if __name__ == "__main__" and not is_running_in_streamlit:
 
     script_path = os.path.abspath(__file__)
     
-    # Lanzar Streamlit (Streamlit abre la pestaña del navegador automáticamente)
+    # Lanzar Streamlit
     subprocess.run([
         sys.executable,
         "-m",
@@ -108,11 +108,25 @@ st.markdown(
             -webkit-text-fill-color: #FFFFFF !important;
         }
 
-        /* SELECTBOX / DROPDOWN */
+        /* SELECTBOX / DROPDOWN Y PESTAÑAS */
         div[data-testid="stSelectbox"] label p, div[data-testid="stRadio"] label p {
             color: #00E676 !important;
             font-size: 0.95rem !important;
             font-weight: 800 !important;
+        }
+
+        /* ESTILO PESTAÑAS (ST.TABS) */
+        button[data-baseweb="tab"] {
+            background-color: #1E293B !important;
+            color: #94A3B8 !important;
+            border-radius: 6px 6px 0 0 !important;
+            padding: 8px 12px !important;
+            font-weight: 700 !important;
+        }
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background-color: #0F172A !important;
+            color: #38BDF8 !important;
+            border-bottom: 2px solid #38BDF8 !important;
         }
 
         /* BOTÓN REFRESCAR */
@@ -404,7 +418,142 @@ st.markdown(render_kpi_table_html(df_kpis), unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
-# SECCIÓN 2: TABLA DE DETALLES (2 COLUMNAS FIJAS)
+# SECCIÓN SEGUNDA: TABLAS INFORMATIVAS (PESTAÑAS DINÁMICAS)
+# ---------------------------------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    "<h4 style='color: #38BDF8 !important; margin-bottom: 4px;'>📊 Tablas Informativas</h4>",
+    unsafe_allow_html=True,
+)
+
+# HELPER RENDER TABLA DINÁMICA TIPO EXCEL
+def render_pivot_interes_neto_html(df_data):
+    df_temp = df_data.copy()
+    df_temp["Año FIN"] = df_temp["FECHA FIN"].dt.year
+    df_valid = df_temp.dropna(subset=["Año FIN", "Tipo Renta Fija"]).copy()
+    df_valid["Año FIN"] = df_valid["Año FIN"].astype(int).astype(str)
+
+    pivot = pd.pivot_table(
+        df_valid,
+        index="Año FIN",
+        columns="Tipo Renta Fija",
+        values="INTERESE NETO",
+        aggfunc="sum",
+        fill_value=0.0,
+        margins=True,
+        margins_name="Total general"
+    )
+
+    cols = [c for c in pivot.columns if c != "Total general"]
+    if "Total general" in pivot.columns:
+        cols.append("Total general")
+
+    pivot = pivot[cols]
+
+    css = """<style>
+.pvt-tbl-wrapper {
+    max-height: 520px; width: 100%; overflow-x: auto; overflow-y: auto;
+    border: 1px solid #475569; border-radius: 8px; background-color: #0F172A;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); margin-top: 8px; margin-bottom: 24px;
+    padding: 0px !important; display: block; position: relative;
+}
+.pvt-tbl-sticky {
+    width: 100%; border-collapse: collapse !important; border-spacing: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.88rem; margin: 0; table-layout: auto !important;
+}
+/* Encabezados Fijos (Fila 1) */
+.pvt-tbl-sticky th {
+    position: sticky !important; top: 0 !important; z-index: 20 !important;
+    background-color: #1E293B !important; color: #FFFFFF !important;
+    border: 1px solid #475569 !important; padding: 8px 10px !important;
+    text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
+}
+/* Esquina Superior Izquierda (Fija 2D) */
+.pvt-tbl-sticky th:first-child {
+    position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
+    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
+    text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
+    white-space: normal !important; word-wrap: break-word !important;
+    background-color: #1E293B !important;
+}
+
+/* Celdas de datos normales */
+.pvt-tbl-sticky td {
+    position: static !important; z-index: auto !important; padding: 8px 10px !important;
+    border: 1px solid #334155 !important; vertical-align: middle !important;
+    text-align: right !important; color: #000000 !important; white-space: nowrap !important;
+}
+
+/* Columna 1 Fija (Años) */
+.pvt-tbl-sticky .lbl-sticky-col {
+    position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
+    width: 125px !important; min-width: 125px !important; max-width: 125px !important;
+    text-align: center !important; border: 1px solid #334155 !important;
+    box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
+    white-space: normal !important; word-wrap: break-word !important;
+}
+
+/* Filas normales alternadas */
+.row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+.row-pvt-yellow td { background-color: #FEF3C7 !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-yellow .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+.row-pvt-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-white .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+/* Fila de Total General */
+.row-pvt-total td { background-color: #BAE6FD !important; color: #000000 !important; font-weight: 900 !important; }
+.row-pvt-total .lbl-sticky-col { background-color: #38BDF8 !important; color: #000000 !important; font-weight: 900 !important; }
+</style>"""
+
+    html = f'{css}<div class="pvt-tbl-wrapper"><table class="pvt-tbl-sticky">'
+    html += '<thead><tr>'
+    html += '<th style="width: 125px !important;">Año (FECHA FIN)</th>'
+    for col in cols:
+        html += f'<th>{col}</th>'
+    html += '</tr></thead><tbody>'
+
+    row_classes = ["row-pvt-green", "row-pvt-yellow", "row-pvt-white"]
+
+    for idx, (year, row_data) in enumerate(pivot.iterrows()):
+        is_total = (year == "Total general")
+        row_cls = "row-pvt-total" if is_total else row_classes[idx % len(row_classes)]
+
+        html += f'<tr class="{row_cls}">'
+        html += f'<td class="lbl-sticky-col">{year}</td>'
+
+        for col in cols:
+            val = row_data[col]
+            val_str = "-" if (val == 0.0 or pd.isna(val)) else f"${val:,.2f}"
+            
+            if col == "Total general" or is_total:
+                html += f'<td style="font-weight: 800;">{val_str}</td>'
+            else:
+                html += f'<td>{val_str}</td>'
+
+        html += '</tr>'
+
+    html += '</tbody></table></div>'
+    return html.replace("\n", " ")
+
+
+tab_int_ano, tab_extra = st.tabs([
+    "💰 Interés Neto por Año y Tipo",
+    "➕ Más Tablas"
+])
+
+with tab_int_ano:
+    st.markdown(render_pivot_interes_neto_html(df_datos), unsafe_allow_html=True)
+
+with tab_extra:
+    st.info("Pestaña disponible para agregar más tablas dinámicas adicionales segun lo necesites.")
+
+
+# ---------------------------------------------------------
+# SECCIÓN DETALLES: TABLA DE DETALLES (2 COLUMNAS FIJAS)
 # ---------------------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
