@@ -426,7 +426,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# HELPER RENDER TABLA DINÁMICA TIPO EXCEL
+# TABLA DINÁMICA 1: AÑO vs TIPO RENTA FIJA
 def render_pivot_interes_neto_html(df_data):
     df_temp = df_data.copy()
     df_temp["Año FIN"] = df_temp["FECHA FIN"].dt.year
@@ -462,14 +462,12 @@ def render_pivot_interes_neto_html(df_data):
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.88rem; margin: 0; table-layout: auto !important;
 }
-/* Encabezados Fijos (Fila 1) */
 .pvt-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
     border: 1px solid #475569 !important; padding: 8px 10px !important;
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
 }
-/* Esquina Superior Izquierda (Fija 2D) */
 .pvt-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
     width: 125px !important; min-width: 125px !important; max-width: 125px !important;
@@ -477,15 +475,11 @@ def render_pivot_interes_neto_html(df_data):
     white-space: normal !important; word-wrap: break-word !important;
     background-color: #1E293B !important;
 }
-
-/* Celdas de datos normales */
 .pvt-tbl-sticky td {
     position: static !important; z-index: auto !important; padding: 8px 10px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
     text-align: right !important; color: #000000 !important; white-space: nowrap !important;
 }
-
-/* Columna 1 Fija (Años) */
 .pvt-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
     width: 125px !important; min-width: 125px !important; max-width: 125px !important;
@@ -493,8 +487,6 @@ def render_pivot_interes_neto_html(df_data):
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
     white-space: normal !important; word-wrap: break-word !important;
 }
-
-/* Filas normales alternadas */
 .row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
@@ -504,7 +496,6 @@ def render_pivot_interes_neto_html(df_data):
 .row-pvt-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-white .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
-/* Fila de Total General */
 .row-pvt-total td { background-color: #BAE6FD !important; color: #000000 !important; font-weight: 900 !important; }
 .row-pvt-total .lbl-sticky-col { background-color: #38BDF8 !important; color: #000000 !important; font-weight: 900 !important; }
 </style>"""
@@ -540,16 +531,106 @@ def render_pivot_interes_neto_html(df_data):
     return html.replace("\n", " ")
 
 
-tab_int_ano, tab_extra = st.tabs([
+# TABLA DINÁMICA 2: ENTIDAD vs INTERES NETO
+def render_pivot_entidad_html(df_data):
+    df_temp = df_data.copy()
+    df_valid = df_temp.dropna(subset=["Entidad"]).copy()
+
+    pivot = pd.pivot_table(
+        df_valid,
+        index="Entidad",
+        values="INTERESE NETO",
+        aggfunc="sum",
+        fill_value=0.0,
+        margins=True,
+        margins_name="Total general"
+    ).reset_index()
+
+    css = """<style>
+.pvt-tbl-wrapper {
+    max-height: 520px; width: 100%; overflow-x: auto; overflow-y: auto;
+    border: 1px solid #475569; border-radius: 8px; background-color: #0F172A;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); margin-top: 8px; margin-bottom: 24px;
+    padding: 0px !important; display: block; position: relative;
+}
+.pvt-tbl-sticky {
+    width: 100%; border-collapse: collapse !important; border-spacing: 0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.88rem; margin: 0; table-layout: auto !important;
+}
+.pvt-tbl-sticky th {
+    position: sticky !important; top: 0 !important; z-index: 20 !important;
+    background-color: #1E293B !important; color: #FFFFFF !important;
+    border: 1px solid #475569 !important; padding: 8px 10px !important;
+    text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
+}
+.pvt-tbl-sticky th:first-child {
+    position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
+    width: 140px !important; min-width: 140px !important; max-width: 140px !important;
+    text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
+    white-space: normal !important; word-wrap: break-word !important;
+    background-color: #1E293B !important;
+}
+.pvt-tbl-sticky td {
+    position: static !important; z-index: auto !important; padding: 8px 10px !important;
+    border: 1px solid #334155 !important; vertical-align: middle !important;
+    text-align: right !important; color: #000000 !important; white-space: nowrap !important;
+}
+.pvt-tbl-sticky .lbl-sticky-col {
+    position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
+    width: 140px !important; min-width: 140px !important; max-width: 140px !important;
+    text-align: center !important; border: 1px solid #334155 !important;
+    box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
+    white-space: normal !important; word-wrap: break-word !important;
+}
+.row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+.row-pvt-yellow td { background-color: #FEF3C7 !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-yellow .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+.row-pvt-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 600 !important; }
+.row-pvt-white .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
+
+.row-pvt-total td { background-color: #BAE6FD !important; color: #000000 !important; font-weight: 900 !important; }
+.row-pvt-total .lbl-sticky-col { background-color: #38BDF8 !important; color: #000000 !important; font-weight: 900 !important; }
+</style>"""
+
+    html = f'{css}<div class="pvt-tbl-wrapper"><table class="pvt-tbl-sticky">'
+    html += '<thead><tr>'
+    html += '<th style="width: 140px !important;">Etiquetas de fila</th>'
+    html += '<th>Suma de INTERESE NETO</th>'
+    html += '</tr></thead><tbody>'
+
+    row_classes = ["row-pvt-green", "row-pvt-yellow", "row-pvt-white"]
+
+    for idx, row in pivot.iterrows():
+        entidad = str(row["Entidad"])
+        val = row["INTERESE NETO"]
+        is_total = (entidad == "Total general")
+        row_cls = "row-pvt-total" if is_total else row_classes[idx % len(row_classes)]
+
+        val_str = "-" if (val == 0.0 or pd.isna(val)) else f"${val:,.2f}"
+
+        html += f'<tr class="{row_cls}">'
+        html += f'<td class="lbl-sticky-col">{entidad}</td>'
+        html += f'<td style="font-weight: 800;">{val_str}</td>'
+        html += '</tr>'
+
+    html += '</tbody></table></div>'
+    return html.replace("\n", " ")
+
+
+tab_int_ano, tab_int_entidad = st.tabs([
     "💰 Interés Neto por Año y Tipo",
-    "➕ Más Tablas"
+    "🏦 Interés Neto por Entidad"
 ])
 
 with tab_int_ano:
     st.markdown(render_pivot_interes_neto_html(df_datos), unsafe_allow_html=True)
 
-with tab_extra:
-    st.info("Pestaña disponible para agregar más tablas dinámicas adicionales segun lo necesites.")
+with tab_int_entidad:
+    st.markdown(render_pivot_entidad_html(df_datos), unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
