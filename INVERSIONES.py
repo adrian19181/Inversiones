@@ -795,7 +795,6 @@ with tab_chart_entidad:
         df_chart_entidad,
         names="Entidad",
         values="INTERESE NETO",
-        title="Total",
         color_discrete_sequence=["#0E628B", "#E67E22", "#1E824C", "#D35400", "#2980B9", "#8E44AD"]
     )
     
@@ -812,8 +811,12 @@ with tab_chart_entidad:
         paper_bgcolor="#0F172A",
         plot_bgcolor="#0F172A",
         font=dict(color="#FFFFFF", size=13),
-        title_align="center",
-        title_font=dict(size=22, color="#FFFFFF"),
+        title=dict(
+            text="Total",
+            x=0.5,
+            xanchor="center",
+            font=dict(size=22, color="#FFFFFF")
+        ),
         legend_title_text="Entidad",
         legend=dict(
             orientation="v",
