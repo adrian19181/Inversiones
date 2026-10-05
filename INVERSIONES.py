@@ -783,8 +783,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_chart_entidad, tab_chart_mas = st.tabs([
+tab_chart_entidad, tab_chart_tipo, tab_chart_mas = st.tabs([
     "🥧 Interés Neto por Entidad",
+    "📊 Interés Neto por Tipo de Renta",
     "➕ Más Gráficos"
 ])
 
@@ -794,7 +795,6 @@ with tab_chart_entidad:
     # Formatear el nombre de cada entidad en dos líneas (<br>)
     df_chart_entidad["Entidad_Leyenda"] = df_chart_entidad["Entidad"].apply(lambda x: str(x).strip().replace(" ", "<br>"))
     
-    # Remplazamos el naranja por un azul suave (#38BDF8)
     colors_distintivos = ["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4", "#818CF8"]
     
     fig_entidad = px.pie(
@@ -828,13 +828,62 @@ with tab_chart_entidad:
             y=-0.15,
             xanchor="center",
             x=0.5,
-            font=dict(size=16)  # Leyendas más grandes
+            font=dict(size=16)
         ),
         margin=dict(l=10, r=10, t=40, b=80),
         height=450
     )
     
     st.plotly_chart(fig_entidad, use_container_width=True)
+
+with tab_chart_tipo:
+    df_chart_tipo = (
+        df_datos.dropna(subset=["Tipo Renta Fija"])
+        .groupby("Tipo Renta Fija", as_index=False)["INTERESE NETO"]
+        .sum()
+        .sort_values(by="INTERESE NETO", ascending=True)
+    )
+    
+    # Formatear etiquetas en 2 líneas
+    df_chart_tipo["Tipo_Label"] = df_chart_tipo["Tipo Renta Fija"].apply(
+        lambda x: "Austro<br>Futuro" if str(x).strip() == "AustroFuturo" else str(x).strip().replace(" ", "<br>")
+    )
+    df_chart_tipo["Texto_Monto"] = df_chart_tipo["INTERESE NETO"].apply(lambda x: f"${x:,.2f}")
+
+    fig_tipo = px.bar(
+        df_chart_tipo,
+        x="INTERESE NETO",
+        y="Tipo_Label",
+        orientation="h",
+        text="Texto_Monto",
+        color="Tipo_Label",
+        color_discrete_sequence=["#38BDF8", "#0284C7", "#A855F7", "#EC4899", "#06B6D4"],
+        title="SUMA DE INTERESE NETO"
+    )
+
+    fig_tipo.update_traces(
+        textposition='outside',
+        textfont_size=13,
+        textfont_color='white',
+        marker=dict(line=dict(color='#0F172A', width=1))
+    )
+
+    fig_tipo.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="#0F172A",
+        plot_bgcolor="#0F172A",
+        font=dict(color="#FFFFFF", size=13),
+        title_x=0.5,
+        title_xanchor="center",
+        title_font=dict(size=20, color="#FFFFFF"),
+        showlegend=False,
+        xaxis=dict(title="", showgrid=True, gridcolor="#334155", tickprefix="$"),
+        yaxis=dict(title=""),
+        margin=dict(l=10, r=60, t=50, b=30),
+        height=380
+    )
+
+    st.plotly_chart(fig_tipo, use_container_width=True)
 
 with tab_chart_mas:
     st.info("Pestaña disponible para agregar más gráficos dinámicos.")
