@@ -791,12 +791,15 @@ tab_chart_entidad, tab_chart_mas = st.tabs([
 with tab_chart_entidad:
     df_chart_entidad = df_datos.dropna(subset=["Entidad"]).groupby("Entidad", as_index=False)["INTERESE NETO"].sum()
     
-    # Paleta de colores distintivos con morado suave y sin verdes repetidos
-    colors_distintivos = ["#0284C7", "#F97316", "#A855F7", "#EC4899", "#06B6D4", "#F59E0B"]
+    # Formatear el nombre de cada entidad en dos líneas (<br>)
+    df_chart_entidad["Entidad_Leyenda"] = df_chart_entidad["Entidad"].apply(lambda x: str(x).strip().replace(" ", "<br>"))
+    
+    # Remplazamos el naranja por un azul suave (#38BDF8)
+    colors_distintivos = ["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4", "#818CF8"]
     
     fig_entidad = px.pie(
         df_chart_entidad,
-        names="Entidad",
+        names="Entidad_Leyenda",
         values="INTERESE NETO",
         title="Total",
         color_discrete_sequence=colors_distintivos
@@ -822,12 +825,13 @@ with tab_chart_entidad:
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.12,
+            y=-0.15,
             xanchor="center",
-            x=0.5
+            x=0.5,
+            font=dict(size=16)  # Leyendas más grandes
         ),
-        margin=dict(l=10, r=10, t=40, b=60),
-        height=420
+        margin=dict(l=10, r=10, t=40, b=80),
+        height=450
     )
     
     st.plotly_chart(fig_entidad, use_container_width=True)
