@@ -834,7 +834,16 @@ with tab_chart_entidad:
         height=450
     )
     
-    st.plotly_chart(fig_entidad, use_container_width=True)
+    # Bloquear zoom/pan en táctil y ocultar modebar
+    st.plotly_chart(
+        fig_entidad,
+        use_container_width=True,
+        config={
+            'displayModeBar': False,
+            'scrollZoom': False,
+            'doubleClick': False
+        }
+    )
 
 with tab_chart_tipo:
     df_chart_tipo = (
@@ -861,10 +870,12 @@ with tab_chart_tipo:
         title="SUMA DE INTERESE NETO"
     )
 
+    # Posicionamiento inteligente del texto: dentro si cabe, a la derecha si la barra es corta
     fig_tipo.update_traces(
-        textposition='outside',
+        textposition='auto',
         textfont_size=13,
         textfont_color='white',
+        insidetextanchor='end',
         marker=dict(line=dict(color='#0F172A', width=1))
     )
 
@@ -877,13 +888,23 @@ with tab_chart_tipo:
         title_xanchor="center",
         title_font=dict(size=20, color="#FFFFFF"),
         showlegend=False,
-        xaxis=dict(title="", showgrid=True, gridcolor="#334155", tickprefix="$"),
-        yaxis=dict(title=""),
+        # fixedrange=True para evitar zoom/pan al tocar en pantallas móviles
+        xaxis=dict(title="", showgrid=True, gridcolor="#334155", tickprefix="$", fixedrange=True),
+        yaxis=dict(title="", fixedrange=True),
         margin=dict(l=10, r=60, t=50, b=30),
         height=380
     )
 
-    st.plotly_chart(fig_tipo, use_container_width=True)
+    # Bloquear interacciones de zoom en móvil y ocultar barra de botones flotante
+    st.plotly_chart(
+        fig_tipo,
+        use_container_width=True,
+        config={
+            'displayModeBar': False,
+            'scrollZoom': False,
+            'doubleClick': False
+        }
+    )
 
 with tab_chart_mas:
     st.info("Pestaña disponible para agregar más gráficos dinámicos.")
