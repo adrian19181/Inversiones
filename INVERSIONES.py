@@ -759,7 +759,7 @@ def render_pivot_tipo_renta_html(df_data):
 
 
 tab_int_ano, tab_int_entidad, tab_int_tipo = st.tabs([
-    "💰 Interés Neto por Año y Tipo",
+    "💰 Interés Neto por Año",
     "🏦 Interés Neto por Entidad",
     "📑 Resumen por Tipo de Renta"
 ])
@@ -783,11 +783,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_chart_entidad, tab_chart_ano_tipo, tab_chart_tipo, tab_chart_mas = st.tabs([
+tab_chart_entidad, tab_chart_ano, tab_chart_tipo = st.tabs([
     "🥧 Interés Neto por Entidad",
-    "📊 Interés Neto por Año y Tipo",
-    "📊 Interés Neto por Tipo de Renta",
-    "➕ Más Gráficos"
+    "📊 Interés Neto por Año",
+    "📊 Interés Neto por Tipo de Renta"
 ])
 
 with tab_chart_entidad:
@@ -846,13 +845,14 @@ with tab_chart_entidad:
         }
     )
 
-with tab_chart_ano_tipo:
+with tab_chart_ano:
     df_chart_ano = df_datos.dropna(subset=["FECHA FIN", "Tipo Renta Fija"]).copy()
     df_chart_ano["Año"] = df_chart_ano["FECHA FIN"].dt.year.astype(int).astype(str)
     
     df_chart_grouped = (
         df_chart_ano.groupby(["Año", "Tipo Renta Fija"], as_index=False)["INTERESE NETO"]
         .sum()
+        .sort_values(by="Año", ascending=True)
     )
     
     # Formatear el nombre del tipo para la leyenda multilínea
@@ -861,25 +861,26 @@ with tab_chart_ano_tipo:
     )
     df_chart_grouped["Texto_Monto"] = df_chart_grouped["INTERESE NETO"].apply(lambda x: f"${x:,.2f}" if x > 0 else "")
 
-    fig_ano_tipo = px.bar(
+    fig_ano = px.bar(
         df_chart_grouped,
-        x="Año",
-        y="INTERESE NETO",
+        y="Año",
+        x="INTERESE NETO",
         color="Tipo_Leyenda",
         barmode="group",
+        orientation="h",
         text="Texto_Monto",
-        title="SUMA DE INTERESE NETO POR AÑO Y TIPO",
+        title="Interés Neto por Año",
         color_discrete_sequence=["#0284C7", "#38BDF8", "#A855F7", "#EC4899", "#06B6D4"]
     )
 
-    fig_ano_tipo.update_traces(
-        textposition='outside',
+    fig_ano.update_traces(
+        textposition='auto',
         textfont_size=11,
         textfont_color='white',
         marker=dict(line=dict(color='#0F172A', width=1))
     )
 
-    fig_ano_tipo.update_layout(
+    fig_ano.update_layout(
         template="plotly_dark",
         paper_bgcolor="#0F172A",
         plot_bgcolor="#0F172A",
@@ -891,19 +892,19 @@ with tab_chart_ano_tipo:
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.22,
+            y=-0.18,
             xanchor="center",
             x=0.5,
-            font=dict(size=14)
+            font=dict(size=13)
         ),
-        xaxis=dict(title="", type="category", fixedrange=True),
-        yaxis=dict(title="", tickprefix="$", showgrid=True, gridcolor="#334155", fixedrange=True),
-        margin=dict(l=10, r=10, t=50, b=90),
-        height=450
+        yaxis=dict(title="", type="category", autorange="reversed", fixedrange=True),
+        xaxis=dict(title="", tickprefix="$", showgrid=True, gridcolor="#334155", fixedrange=True),
+        margin=dict(l=10, r=20, t=50, b=80),
+        height=480
     )
 
     st.plotly_chart(
-        fig_ano_tipo,
+        fig_ano,
         use_container_width=True,
         config={
             'displayModeBar': False,
@@ -972,9 +973,6 @@ with tab_chart_tipo:
             'doubleClick': False
         }
     )
-
-with tab_chart_mas:
-    st.info("Pestaña disponible para agregar más gráficos dinámicos.")
 
 
 # ---------------------------------------------------------
@@ -1065,7 +1063,7 @@ def render_detalles_inversiones_html(df):
 .row-det-yellow td { background-color: #FEF3C7 !important; font-weight: 700 !important; }
 .row-det-yellow .sticky-col-1, .row-det-yellow .sticky-col-2 { background-color: #FACC15 !important; }
 
-.row-det-white td { background-color: #F8FAFC !important; font-weight: 700 !important; }
+.row-det-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 700 !important; }
 .row-det-white .sticky-col-1, .row-det-white .sticky-col-2 { background-color: #FACC15 !important; }
 </style>"""
 
