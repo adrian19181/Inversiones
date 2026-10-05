@@ -9,6 +9,7 @@ import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
+import plotly.express as px
 
 # ---------------------------------------------------------
 # AUTO-LANZADOR PARA EJECUCIÓN CON DOBLE CLIC EN LOCAL
@@ -771,6 +772,64 @@ with tab_int_entidad:
 
 with tab_int_tipo:
     st.markdown(render_pivot_tipo_renta_html(df_datos), unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------
+# SECCIÓN TERCERA: GRÁFICOS DINÁMICOS
+# ---------------------------------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    "<h4 style='color: #38BDF8 !important; margin-bottom: 4px;'>📈 Gráficos Dinámicos</h4>",
+    unsafe_allow_html=True,
+)
+
+tab_chart_entidad, tab_chart_mas = st.tabs([
+    "🥧 Interés Neto por Entidad",
+    "➕ Más Gráficos"
+])
+
+with tab_chart_entidad:
+    df_chart_entidad = df_datos.dropna(subset=["Entidad"]).groupby("Entidad", as_index=False)["INTERESE NETO"].sum()
+    
+    fig_entidad = px.pie(
+        df_chart_entidad,
+        names="Entidad",
+        values="INTERESE NETO",
+        title="Total",
+        color_discrete_sequence=["#0E628B", "#E67E22", "#1E824C", "#D35400", "#2980B9", "#8E44AD"]
+    )
+    
+    fig_entidad.update_traces(
+        textposition='inside',
+        textinfo='percent',
+        textfont_size=14,
+        textfont_color='white',
+        marker=dict(line=dict(color='#0F172A', width=2))
+    )
+    
+    fig_entidad.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="#0F172A",
+        plot_bgcolor="#0F172A",
+        font=dict(color="#FFFFFF", size=13),
+        title_align="center",
+        title_font=dict(size=22, color="#FFFFFF"),
+        legend_title_text="Entidad",
+        legend=dict(
+            orientation="v",
+            yanchor="middle",
+            y=0.5,
+            xanchor="left",
+            x=0.85
+        ),
+        margin=dict(l=20, r=20, t=50, b=20),
+        height=380
+    )
+    
+    st.plotly_chart(fig_entidad, use_container_width=True)
+
+with tab_chart_mas:
+    st.info("Pestaña disponible para agregar más gráficos dinámicos.")
 
 
 # ---------------------------------------------------------
