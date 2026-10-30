@@ -999,7 +999,7 @@ with tab_chart_tipo:
 
 
 # ---------------------------------------------------------
-# SECCIÓN DETALLES: TABLA DE DETALLES (1 COLUMNA FIJA COMBINADA)
+# SECCIÓN DETALLES: TABLA DE DETALLES (1 COLUMNA FIJA COMBINADA + AÑOS)
 # ---------------------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
@@ -1105,12 +1105,28 @@ def render_detalles_inversiones_html(df):
         i_neto = row.get("INTERESE NETO", 0.0)
         n_recibir = row.get("NETO A RECIBIR", 0.0)
         
-        # Combinar Tipo de Renta con Entidad acortada entre paréntesis
+        # Obtener años de inicio y fin
+        anio_ini = f_ini.strftime("%Y") if pd.notna(f_ini) else ""
+        anio_fin = f_fin.strftime("%Y") if pd.notna(f_fin) else ""
+        
+        if anio_ini and anio_fin:
+            rango_anios = f"{anio_ini} - {anio_fin}"
+        elif anio_ini:
+            rango_anios = f"{anio_ini}"
+        elif anio_fin:
+            rango_anios = f"{anio_fin}"
+        else:
+            rango_anios = ""
+        
+        # Combinar Tipo de Renta con Entidad acortada entre paréntesis y Rango de Años
         ent_acortada = acortar_entidad(entidad)
         if ent_acortada:
             tipo_html = f"{tipo}<br>({ent_acortada})"
         else:
             tipo_html = tipo
+            
+        if rango_anios:
+            tipo_html += f"<br>{rango_anios}"
         
         # Formateo Móvil
         cap_str = f"${float(cap):,.2f}"
