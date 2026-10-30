@@ -999,7 +999,7 @@ with tab_chart_tipo:
 
 
 # ---------------------------------------------------------
-# SECCIÓN DETALLES: TABLA DE DETALLES (1 COLUMNA FIJA COMBINADA + AÑOS)
+# SECCIÓN DETALLES: TABLA DE DETALLES (ORDEN PERSONALIZADO DE COLUMNAS)
 # ---------------------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
@@ -1079,16 +1079,22 @@ def render_detalles_inversiones_html(df):
     html = f'{css}<div class="det-tbl-wrapper"><table class="det-tbl-sticky">'
     html += '<thead><tr>'
     
-    # Titulo Fijo Columna 1
+    # Columna 1: Tipo Renta (Fija)
     html += '<th style="width: 110px !important;">Tipo<br>Renta</th>'
     
-    # Titulos Moviles
-    html += '<th>Capital<br>Invertido</th>'
-    html += '<th>Tasa<br>Nominal</th>'
-    html += '<th>Plazo<br>(Días)</th>'
+    # Columna 2: Fecha Inicio
     html += '<th>Fecha<br>Inicio</th>'
+    # Columna 3: Fecha Fin
     html += '<th>Fecha<br>Fin</th>'
+    # Columna 4: Plazo (Días)
+    html += '<th>Plazo<br>(Días)</th>'
+    # Columna 5: Capital Invertido
+    html += '<th>Capital<br>Invertido</th>'
+    # Columna 6: TNA
+    html += '<th>TNA</th>'
+    # Columna 7: Interés Neto
     html += '<th>Interés<br>Neto</th>'
+    # Columna 8: Neto a Recibir
     html += '<th>Neto a<br>Recibir</th>'
     html += '</tr></thead><tbody>'
 
@@ -1129,28 +1135,34 @@ def render_detalles_inversiones_html(df):
             tipo_html += f"<br>{rango_anios}"
         
         # Formateo Móvil
+        f_ini_str = formato_fecha_estandar(f_ini)
+        f_fin_str = formato_fecha_estandar(f_fin)
+        dias_str = f"{int(float(dias)):,}"
         cap_str = f"${float(cap):,.2f}"
         tasa_f = float(tasa)
         tasa_str = f"{tasa_f*100:,.2f}%" if tasa_f <= 1.0 else f"{tasa_f:,.2f}%"
-        dias_str = f"{int(float(dias)):,}"
-        f_ini_str = formato_fecha_estandar(f_ini)
-        f_fin_str = formato_fecha_estandar(f_fin)
         i_neto_str = f"${float(i_neto):,.2f}"
         n_recibir_str = f"${float(n_recibir):,.2f}"
         
         r_cls = row_classes[idx % len(row_classes)]
 
         html += f'<tr class="{r_cls}">'
-        # Celda Fija Combinada
+        # Columna 1: Celda Fija
         html += f'<td class="sticky-col-1">{tipo_html}</td>'
         
-        # Celdas Móviles
-        html += f'<td>{cap_str}</td>'
-        html += f'<td>{tasa_str}</td>'
-        html += f'<td>{dias_str}</td>'
+        # Columna 2: Fecha Inicio
         html += f'<td>{f_ini_str}</td>'
+        # Columna 3: Fecha Fin
         html += f'<td>{f_fin_str}</td>'
+        # Columna 4: Plazo (Días)
+        html += f'<td>{dias_str}</td>'
+        # Columna 5: Capital Invertido
+        html += f'<td>{cap_str}</td>'
+        # Columna 6: TNA
+        html += f'<td>{tasa_str}</td>'
+        # Columna 7: Interés Neto
         html += f'<td>{i_neto_str}</td>'
+        # Columna 8: Neto a Recibir
         html += f'<td>{n_recibir_str}</td>'
         html += '</tr>'
 
