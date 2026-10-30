@@ -169,6 +169,21 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
+# HELPER: ACORTAR NOMBRE DE ENTIDAD
+# ---------------------------------------------------------
+def acortar_entidad(nombre):
+    if not nombre or str(nombre).strip() in ["-", "nan", "None", ""]:
+        return ""
+    n = str(nombre).strip().lower()
+    if "jardin" in n or "jardín" in n:
+        return "Jardín"
+    elif "austro" in n:
+        return "Austro"
+    elif "mutualista" in n or "mutazuay" in n:
+        return "Mutazuay"
+    return str(nombre).strip()
+
+# ---------------------------------------------------------
 # CONEXIÓN A GOOGLE DRIVE Y EXTRACCIÓN DINÁMICA
 # ---------------------------------------------------------
 DRIVE_FILE_ID = "1QA04CUCoI2hTaLjTXjCT37gqZMBE8EzW"
@@ -497,7 +512,6 @@ def render_pivot_interes_neto_html(df_data):
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.85rem; margin: 0; table-layout: auto !important;
 }
-/* Encabezados Fijos (Fila 1) - Centrado y Ancho Inteligente */
 .pvt-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
@@ -505,29 +519,22 @@ def render_pivot_interes_neto_html(df_data):
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
     line-height: 1.2 !important;
 }
-/* Esquina Superior Izquierda (Fija 2D) */
 .pvt-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
     white-space: nowrap !important; background-color: #1E293B !important;
 }
-
-/* Celdas de datos normales - Centrados y Ancho Inteligente */
 .pvt-tbl-sticky td {
     position: static !important; z-index: auto !important; padding: 6px 10px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
     text-align: center !important; color: #000000 !important; white-space: nowrap !important;
 }
-
-/* Columna 1 Fija (Años) - Centrado */
 .pvt-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
     text-align: center !important; border: 1px solid #334155 !important;
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
     white-space: nowrap !important;
 }
-
-/* Filas normales alternadas */
 .row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
@@ -537,7 +544,6 @@ def render_pivot_interes_neto_html(df_data):
 .row-pvt-white td { background-color: #F8FAFC !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-white .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
-/* Fila de Total General */
 .row-pvt-total td { background-color: #BAE6FD !important; color: #000000 !important; font-weight: 900 !important; }
 .row-pvt-total .lbl-sticky-col { background-color: #38BDF8 !important; color: #000000 !important; font-weight: 900 !important; }
 </style>"""
@@ -602,7 +608,6 @@ def render_pivot_entidad_html(df_data):
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.85rem; margin: 0; table-layout: auto !important;
 }
-/* Encabezados Fijos (Fila 1) - Centrado y Ancho Inteligente */
 .pvt-tbl-sticky th {
     position: sticky !important; top: 0 !important; z-index: 20 !important;
     background-color: #1E293B !important; color: #FFFFFF !important;
@@ -610,28 +615,22 @@ def render_pivot_entidad_html(df_data):
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
     line-height: 1.2 !important;
 }
-/* Esquina Superior Izquierda (Fija 2D) */
 .pvt-tbl-sticky th:first-child {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
     white-space: nowrap !important; background-color: #1E293B !important;
 }
-
-/* Celdas de datos normales - Centrados */
 .pvt-tbl-sticky td {
     position: static !important; z-index: auto !important; padding: 6px 10px !important;
     border: 1px solid #334155 !important; vertical-align: middle !important;
     text-align: center !important; color: #000000 !important; white-space: nowrap !important;
 }
-
-/* Columna 1 Fija (Entidades) - Centrado */
 .pvt-tbl-sticky .lbl-sticky-col {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
     text-align: center !important; border: 1px solid #334155 !important;
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
     white-space: nowrap !important;
 }
-
 .row-pvt-green td { background-color: #ECFDF5 !important; color: #000000 !important; font-weight: 600 !important; }
 .row-pvt-green .lbl-sticky-col { background-color: #FACC15 !important; color: #000000 !important; }
 
@@ -1000,7 +999,7 @@ with tab_chart_tipo:
 
 
 # ---------------------------------------------------------
-# SECCIÓN DETALLES: TABLA DE DETALLES (2 COLUMNAS FIJAS)
+# SECCIÓN DETALLES: TABLA DE DETALLES (1 COLUMNA FIJA COMBINADA)
 # ---------------------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
@@ -1042,16 +1041,10 @@ def render_detalles_inversiones_html(df):
     border: 1px solid #475569 !important; padding: 6px 8px !important;
     text-align: center !important; font-weight: 800 !important; white-space: nowrap !important;
 }
-/* Encabezado Columna L (Fija 1) - Ancho más ajustado (90px) */
+/* Encabezado Columna 1 (Fija - Con Sombra) */
 .det-tbl-sticky th:nth-child(1) {
     position: sticky !important; top: 0 !important; left: 0 !important; z-index: 50 !important;
-    width: 90px !important; min-width: 90px !important; max-width: 90px !important;
-    text-align: center !important; white-space: normal !important; word-wrap: break-word !important;
-}
-/* Encabezado Columna K (Fija 2 - Con Sombra) */
-.det-tbl-sticky th:nth-child(2) {
-    position: sticky !important; top: 0 !important; left: 90px !important; z-index: 50 !important;
-    width: 90px !important; min-width: 90px !important; max-width: 90px !important;
+    width: 110px !important; min-width: 110px !important; max-width: 110px !important;
     text-align: center !important; box-shadow: 2px 0 5px rgba(0,0,0,0.4) !important;
     white-space: normal !important; word-wrap: break-word !important;
 }
@@ -1063,18 +1056,10 @@ def render_detalles_inversiones_html(df):
     text-align: center !important; color: #000000 !important; white-space: nowrap !important;
 }
 
-/* Celda Columna L (Fija 1) */
+/* Celda Columna 1 (Fija - Con Sombra) */
 .det-tbl-sticky .sticky-col-1 {
     position: sticky !important; left: 0 !important; z-index: 30 !important; font-weight: 800 !important;
-    width: 90px !important; min-width: 90px !important; max-width: 90px !important;
-    background-color: #FACC15 !important; color: #000000 !important; border: 1px solid #334155 !important;
-    background-clip: padding-box !important; white-space: normal !important; word-wrap: break-word !important;
-}
-
-/* Celda Columna K (Fija 2 - Con Sombra) */
-.det-tbl-sticky .sticky-col-2 {
-    position: sticky !important; left: 90px !important; z-index: 30 !important; font-weight: 800 !important;
-    width: 90px !important; min-width: 90px !important; max-width: 90px !important;
+    width: 110px !important; min-width: 110px !important; max-width: 110px !important;
     background-color: #FACC15 !important; color: #000000 !important; border: 1px solid #334155 !important;
     box-shadow: 3px 0 6px rgba(0,0,0,0.4) !important; background-clip: padding-box !important;
     white-space: normal !important; word-wrap: break-word !important;
@@ -1082,23 +1067,22 @@ def render_detalles_inversiones_html(df):
 
 /* Clases alternadas (Mismo Estilo) */
 .row-det-green td { background-color: #ECFDF5 !important; font-weight: 700 !important; }
-.row-det-green .sticky-col-1, .row-det-green .sticky-col-2 { background-color: #FACC15 !important; }
+.row-det-green .sticky-col-1 { background-color: #FACC15 !important; }
 
 .row-det-yellow td { background-color: #FEF3C7 !important; font-weight: 700 !important; }
-.row-det-yellow .sticky-col-1, .row-det-yellow .sticky-col-2 { background-color: #FACC15 !important; }
+.row-det-yellow .sticky-col-1 { background-color: #FACC15 !important; }
 
 .row-det-white td { background-color: #F8FAFC !important; font-weight: 700 !important; }
-.row-det-white .sticky-col-1, .row-det-white .sticky-col-2 { background-color: #FACC15 !important; }
+.row-det-white .sticky-col-1 { background-color: #FACC15 !important; }
 </style>"""
 
     html = f'{css}<div class="det-tbl-wrapper"><table class="det-tbl-sticky">'
     html += '<thead><tr>'
     
-    # Titulos Fijos en DOS LÍNEAS (Col L y K)
-    html += '<th style="width: 90px !important;">Tipo<br>Renta</th>'
-    html += '<th style="width: 90px !important;">Entidad<br>Financiera</th>'
+    # Titulo Fijo Columna 1
+    html += '<th style="width: 110px !important;">Tipo<br>Renta</th>'
     
-    # Titulos Moviles en DOS LÍNEAS (Col A, B, G, H, I, M, F)
+    # Titulos Moviles
     html += '<th>Capital<br>Invertido</th>'
     html += '<th>Tasa<br>Nominal</th>'
     html += '<th>Plazo<br>(Días)</th>'
@@ -1111,7 +1095,6 @@ def render_detalles_inversiones_html(df):
     row_classes = ["row-det-green", "row-det-yellow", "row-det-white"]
 
     for idx, row in df.iterrows():
-        # Extracción
         tipo = str(row.get("Tipo Renta Fija", "-"))
         entidad = str(row.get("Entidad", "-"))
         cap = row.get("CAPITAL", 0.0)
@@ -1122,12 +1105,14 @@ def render_detalles_inversiones_html(df):
         i_neto = row.get("INTERESE NETO", 0.0)
         n_recibir = row.get("NETO A RECIBIR", 0.0)
         
-        # Formateo multilineal de Col 1 y 2
-        tipo_html = tipo.replace(" ", "<br>")
-        if tipo_html == "AustroFuturo": tipo_html = "Austro<br>Futuro"
-        entidad_html = entidad.replace(" ", "<br>")
+        # Combinar Tipo de Renta con Entidad acortada entre paréntesis
+        ent_acortada = acortar_entidad(entidad)
+        if ent_acortada:
+            tipo_html = f"{tipo}<br>({ent_acortada})"
+        else:
+            tipo_html = tipo
         
-        # Formateo Movil
+        # Formateo Móvil
         cap_str = f"${float(cap):,.2f}"
         tasa_f = float(tasa)
         tasa_str = f"{tasa_f*100:,.2f}%" if tasa_f <= 1.0 else f"{tasa_f:,.2f}%"
@@ -1140,11 +1125,10 @@ def render_detalles_inversiones_html(df):
         r_cls = row_classes[idx % len(row_classes)]
 
         html += f'<tr class="{r_cls}">'
-        # Celdas Fijas con texto distribuido en 2 lineas
+        # Celda Fija Combinada
         html += f'<td class="sticky-col-1">{tipo_html}</td>'
-        html += f'<td class="sticky-col-2">{entidad_html}</td>'
         
-        # Celdas Moviles (A, B, G, H, I, M, F)
+        # Celdas Móviles
         html += f'<td>{cap_str}</td>'
         html += f'<td>{tasa_str}</td>'
         html += f'<td>{dias_str}</td>'
