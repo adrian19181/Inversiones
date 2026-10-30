@@ -291,7 +291,7 @@ categoria_seleccionada = st.selectbox(
 )
 
 # ---------------------------------------------------------
-# CÁLCULOS DINÁMICOS TABLA 1
+# CÁLCULOS DINÁMICOS TABLA 1 (OPCIÓN B)
 # ---------------------------------------------------------
 if categoria_seleccionada == "Todas las Inversiones":
     df_filtro = df_datos.copy()
@@ -309,23 +309,18 @@ else:
 min_fecha_inicio = df_filtro["FECHA INICIO"].min()
 max_fecha_fin = df_filtro["FECHA FIN"].max()
 
-if categoria_seleccionada in ["Plazos Fijos", "Ahorros Programados"]:
-    dias_unicos = set()
-    for _, row in df_filtro.iterrows():
-        inicio = row["FECHA INICIO"]
-        fin = row["FECHA FIN"]
-        if pd.notna(inicio) and pd.notna(fin):
-            actual = inicio
-            while actual < fin:
-                dias_unicos.add(actual)
-                actual += datetime.timedelta(days=1)
-    dias = len(dias_unicos)
-else:
-    if pd.notna(min_fecha_inicio) and pd.notna(max_fecha_fin):
-        dias = (max_fecha_fin - min_fecha_inicio).days
-    else:
-        dias = 0
+# Cálculo Opción B: Días activos únicos de calendario (sin duplicar días en paralelo)
+dias_activos = set()
+for _, row in df_filtro.iterrows():
+    inicio = row["FECHA INICIO"]
+    fin = row["FECHA FIN"]
+    if pd.notna(inicio) and pd.notna(fin):
+        actual = inicio
+        while actual < fin:
+            dias_activos.add(actual)
+            actual += datetime.timedelta(days=1)
 
+dias = len(dias_activos)
 meses = dias / 30.0
 anios = dias / 365.0
 
@@ -333,10 +328,11 @@ tot_neto = df_filtro["INTERESE NETO"].sum() if "INTERESE NETO" in df_filtro.colu
 tot_retencion = df_filtro["RETENCION IMP, 2%"].sum() if "RETENCION IMP, 2%" in df_filtro.columns else 0.0
 tot_certificado = df_filtro["VALOR GANADO CERTIFICADO"].sum() if "VALOR GANADO CERTIFICADO" in df_filtro.columns else 0.0
 
+# Capital Invertido Ponderado (Opción B: Suma(Capital * Días) / Días Activos Únicos)
 num_cap_pond = (df_filtro["CAPITAL"] * df_filtro["DIAS"]).sum()
-den_cap_pond = df_filtro["DIAS"].sum()
-cap_invertido_ponderado = (num_cap_pond / den_cap_pond) if den_cap_pond > 0 else 0.0
+cap_invertido_ponderado = (num_cap_pond / dias) if dias > 0 else 0.0
 
+# Tasa Ponderada (Suma(Capital * Días * Tasa) / Suma(Capital * Días))
 num_pond = (df_filtro["CAPITAL"] * df_filtro["DIAS"] * df_filtro["TASA"]).sum()
 den_pond = (df_filtro["CAPITAL"] * df_filtro["DIAS"]).sum()
 tasa_pond = (num_pond / den_pond) if den_pond > 0 else 0.0
@@ -346,6 +342,7 @@ fecha_fin_str = formato_fecha_estandar(max_fecha_fin)
 tasa_str = f"{tasa_pond * 100:,.2f}%" if tasa_pond <= 1.0 else f"{tasa_pond:,.2f}%"
 
 df_kpis = pd.DataFrame([
+    {"Métrica": "# Operaciones", "Resultado": f"{len(df_filtro):,}"},
     {"Métrica": "Fecha Inicio", "Resultado": fecha_ini_str},
     {"Métrica": "Fecha Fin", "Resultado": fecha_fin_str},
     {"Métrica": "# Días", "Resultado": f"{int(dias):,}"},
@@ -866,7 +863,7 @@ with tab_chart_ano:
         .sort_values(by="Año", ascending=True)
     )
     
-    # Formatear el nombre del tipo para la leyenda multilínea
+    # Formatear el nombre del tipo para la leyenda multilineal
     df_chart_grouped["Tipo_Leyenda"] = df_chart_grouped["Tipo Renta Fija"].apply(
         lambda x: "Austro<br>Futuro" if str(x).strip() == "AustroFuturo" else str(x).strip().replace(" ", "<br>")
     )
