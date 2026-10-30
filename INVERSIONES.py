@@ -337,6 +337,11 @@ num_pond = (df_filtro["CAPITAL"] * df_filtro["DIAS"] * df_filtro["TASA"]).sum()
 den_pond = (df_filtro["CAPITAL"] * df_filtro["DIAS"]).sum()
 tasa_pond = (num_pond / den_pond) if den_pond > 0 else 0.0
 
+# Renta Pasiva Mensual Promedio: Total Intereses Ganados / (Días línea de tiempo total / 30)
+dias_linea_tiempo = (max_fecha_fin - min_fecha_inicio).days if (pd.notna(max_fecha_fin) and pd.notna(min_fecha_inicio)) else 0
+meses_linea_tiempo = dias_linea_tiempo / 30.0 if dias_linea_tiempo > 0 else 0.0
+renta_pasiva_mensual = (tot_neto / meses_linea_tiempo) if meses_linea_tiempo > 0 else 0.0
+
 fecha_ini_str = formato_fecha_estandar(min_fecha_inicio)
 fecha_fin_str = formato_fecha_estandar(max_fecha_fin)
 tasa_str = f"{tasa_pond * 100:,.2f}%" if tasa_pond <= 1.0 else f"{tasa_pond:,.2f}%"
@@ -350,6 +355,7 @@ df_kpis = pd.DataFrame([
     {"Métrica": "# Años", "Resultado": f"{anios:,.2f}"},
     {"Métrica": "Capital Invertido Ponderado", "Resultado": f"${cap_invertido_ponderado:,.2f}"},
     {"Métrica": "Intereses Netos Totales", "Resultado": f"${tot_neto:,.2f}"},
+    {"Métrica": "Renta Pasiva Mensual Promedio", "Resultado": f"${renta_pasiva_mensual:,.2f}/mes"},
     {"Métrica": "Retención Impuestos", "Resultado": f"${tot_retencion:,.2f}"},
     {"Métrica": "Ganado Certificado", "Resultado": f"${tot_certificado:,.2f}"},
     {"Métrica": "Tasa Ponderada", "Resultado": tasa_str},
@@ -361,7 +367,7 @@ df_kpis = pd.DataFrame([
 def render_kpi_table_html(df):
     css = """<style>
 .kpi-tbl-wrapper {
-    max-height: 520px; width: 100%; overflow-x: auto; overflow-y: auto;
+    max-height: 560px; width: 100%; overflow-x: auto; overflow-y: auto;
     border: 1px solid #475569; border-radius: 8px; background-color: #0F172A;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); margin-top: 8px; margin-bottom: 16px;
     padding: 0px !important; display: block; position: relative;
@@ -423,7 +429,7 @@ def render_kpi_table_html(df):
         metrica = str(row["Métrica"])
         res = str(row["Resultado"])
         
-        is_highlight = "Intereses Netos" in metrica or "Capital Invertido Ponderado" in metrica
+        is_highlight = "Intereses Netos" in metrica or "Capital Invertido Ponderado" in metrica or "Renta Pasiva" in metrica
         if is_highlight:
             row_cls = "row-excel-highlight"
         else:
@@ -464,7 +470,9 @@ def dos_lineas_titulo(titulo):
         "Total general": "Total<br>general",
         "Etiquetas de fila": "Etiquetas<br>de fila",
         "Suma de INTERESE NETO": "Suma de<br>INTERESE NETO",
-        "Cuenta de Tipo Renta Fija": "Cuenta de<br>Tipo Renta Fija"
+        "Cuenta de Tipo Renta Fija": "Cuenta de<br>Tipo Renta Fija",
+        "Tasa Ponderada": "Tasa<br>Ponderada",
+        "# Operaciones": "# Operaciones"
     }
     if titulo in reemplazos:
         return reemplazos[titulo]
@@ -578,20 +586,38 @@ def render_pivot_interes_neto_html(df_data):
     return html.replace("\n", " ")
 
 
-# TABLA DINÁMICA 2: ENTIDAD vs INTERES NETO
+# TABLA DINÁMICA 2: ENTIDAD vs INTERES NETO & TASA PROMEDIO PONDERADA POR ENTIDAD
 def render_pivot_entidad_html(df_data):
     df_temp = df_data.copy()
     df_valid = df_temp.dropna(subset=["Entidad"]).copy()
 
-    pivot = pd.pivot_table(
-        df_valid,
-        index="Entidad",
-        values="INTERESE NETO",
-        aggfunc="sum",
-        fill_value=0.0,
-        margins=True,
-        margins_name="Total general"
-    ).reset_index()
+    records = []
+    tot_num_tasa_global = 0.0
+    tot_den_tasa_global = 0.0
+    tot_interes_global = 0.0
+    tot_ops_global = 0
+
+    for entidad, grp in df_valid.groupby("Entidad"):
+        num_tasa = (grp["CAPITAL"] * grp["DIAS"] * grp["TASA"]).sum()
+        den_tasa = (grp["CAPITAL"] * grp["DIAS"]).sum()
+        tasa_pond_ent = (num_tasa / den_tasa) if den_tasa > 0 else 0.0
+        
+        tot_int_ent = grp["INTERESE NETO"].sum()
+        num_ops_ent = len(grp)
+        
+        tot_num_tasa_global += num_tasa
+        tot_den_tasa_global += den_tasa
+        tot_interes_global += tot_int_ent
+        tot_ops_global += num_ops_ent
+
+        records.append({
+            "Entidad": entidad,
+            "Suma_Interes": tot_int_ent,
+            "Tasa_Ponderada": tasa_pond_ent,
+            "Operaciones": num_ops_ent
+        })
+
+    tasa_global = (tot_num_tasa_global / tot_den_tasa_global) if tot_den_tasa_global > 0 else 0.0
 
     css = """<style>
 .pvt-tbl-wrapper {
@@ -645,23 +671,39 @@ def render_pivot_entidad_html(df_data):
     html += '<thead><tr>'
     html += f'<th>{dos_lineas_titulo("Etiquetas de fila")}</th>'
     html += f'<th>{dos_lineas_titulo("Suma de INTERESE NETO")}</th>'
+    html += f'<th>{dos_lineas_titulo("Tasa Ponderada")}</th>'
+    html += f'<th>{dos_lineas_titulo("# Operaciones")}</th>'
     html += '</tr></thead><tbody>'
 
     row_classes = ["row-pvt-green", "row-pvt-yellow", "row-pvt-white"]
 
-    for idx, row in pivot.iterrows():
-        entidad = str(row["Entidad"])
-        val = row["INTERESE NETO"]
-        is_total = (entidad == "Total general")
-        row_cls = "row-pvt-total" if is_total else row_classes[idx % len(row_classes)]
+    for idx, rec in enumerate(records):
+        entidad = rec["Entidad"]
+        val_sum = rec["Suma_Interes"]
+        tasa_p = rec["Tasa_Ponderada"]
+        ops_c = rec["Operaciones"]
 
-        entidad_str = "Total<br>general" if is_total else entidad.replace(" ", "<br>")
-        val_str = "-" if (val == 0.0 or pd.isna(val)) else f"${val:,.2f}"
+        entidad_str = entidad.replace(" ", "<br>")
+        val_str = "-" if (val_sum == 0.0 or pd.isna(val_sum)) else f"${val_sum:,.2f}"
+        tasa_str = f"{tasa_p * 100:,.2f}%"
 
-        html += f'<tr class="{row_cls}">'
+        r_cls = row_classes[idx % len(row_classes)]
+        html += f'<tr class="{r_cls}">'
         html += f'<td class="lbl-sticky-col">{entidad_str}</td>'
         html += f'<td style="font-weight: 800;">{val_str}</td>'
+        html += f'<td style="font-weight: 800;">{tasa_str}</td>'
+        html += f'<td style="font-weight: 800;">{ops_c}</td>'
         html += '</tr>'
+
+    # Fila Total General
+    tot_sum_str = f"${tot_interes_global:,.2f}"
+    tot_tasa_str = f"{tasa_global * 100:,.2f}%"
+    html += f'<tr class="row-pvt-total">'
+    html += f'<td class="lbl-sticky-col">Total<br>general</td>'
+    html += f'<td style="font-weight: 900;">{tot_sum_str}</td>'
+    html += f'<td style="font-weight: 900;">{tot_tasa_str}</td>'
+    html += f'<td style="font-weight: 900;">{tot_ops_global}</td>'
+    html += '</tr>'
 
     html += '</tbody></table></div>'
     return html.replace("\n", " ")
@@ -768,7 +810,7 @@ def render_pivot_tipo_renta_html(df_data):
 
 tab_int_ano, tab_int_entidad, tab_int_tipo = st.tabs([
     "💰 Interés Neto por Año",
-    "🏦 Interés Neto por Entidad",
+    "🏦 Resumen por Entidad",
     "📑 Resumen por Tipo de Renta"
 ])
 
@@ -996,7 +1038,7 @@ with tab_chart_tipo:
 
 
 # ---------------------------------------------------------
-# SECCIÓN DETALLES: TABLA DE DETALLES (ORDEN PERSONALIZADO DE COLUMNAS)
+# SECCIÓN CUARTA: TABLA DE DETALLES (ORDEN PERSONALIZADO DE COLUMNAS)
 # ---------------------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown(
@@ -1167,3 +1209,22 @@ def render_detalles_inversiones_html(df):
     return html.replace("\n", " ")
 
 st.markdown(render_detalles_inversiones_html(df_detalles), unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------
+# SECCIÓN QUINTA: INVERSIONES VIGENTES
+# ---------------------------------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    "<h4 style='color: #00E676 !important; margin-bottom: 4px;'>🟢 Inversiones Vigentes</h4>",
+    unsafe_allow_html=True,
+)
+
+# Fecha actual para filtrado dinámico en tiempo real
+fecha_hoy = pd.Timestamp.now().normalize()
+df_vigentes = df_datos[df_datos["FECHA FIN"] > fecha_hoy].copy()
+
+if df_vigentes.empty:
+    st.info("No hay inversiones vigentes a día de hoy")
+else:
+    st.markdown(render_detalles_inversiones_html(df_vigentes), unsafe_allow_html=True)
