@@ -1,8 +1,6 @@
 import datetime
 import io
 import os
-import socket
-import subprocess
 import sys
 
 import pandas as pd
@@ -10,51 +8,6 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.express as px
-
-# ---------------------------------------------------------
-# AUTO-LANZADOR PARA EJECUCIÓN CON DOBLE CLIC EN LOCAL
-# ---------------------------------------------------------
-is_running_in_streamlit = (
-    st.runtime.exists()
-    or os.environ.get("STREAMLIT_RUNNING") == "true"
-    or os.environ.get("STREAMLIT_SERVER_PORT") is not None
-    or any("streamlit" in arg.lower() for arg in sys.argv)
-)
-
-if __name__ == "__main__" and not is_running_in_streamlit:
-    os.environ["STREAMLIT_RUNNING"] = "true"
-    
-    # Obtener la IP local de la computadora para acceso desde celular
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = "127.0.0.1"
-    finally:
-        s.close()
-
-    os.system("cls" if os.name == "nt" else "clear")
-    print("=" * 60)
-    print("  DASHBOARD: TODAS MIS INVERSIONES")
-    print("=" * 60)
-    print("\n  Iniciando servidor Streamlit...\n")
-    print(f"  👉  Navegador local:  http://localhost:8501")
-    print(f"  👉  Desde el celular: http://{IP}:8501\n")
-    print("=" * 60)
-
-    script_path = os.path.abspath(__file__)
-    
-    # Lanzar Streamlit
-    subprocess.run([
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        script_path,
-        "--server.address=0.0.0.0",
-    ])
-    sys.exit()
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
