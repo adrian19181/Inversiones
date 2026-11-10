@@ -9,6 +9,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 import plotly.express as px
 
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA
 # ---------------------------------------------------------
@@ -83,20 +88,22 @@ st.markdown(
             border-bottom: 2px solid #38BDF8 !important;
         }
 
-        /* BOTÓN REFRESCAR */
-        div[data-testid="stButton"] > button {
+        /* BOTÓN REFRESCAR Y BOTONES SUPERIORES */
+        div[data-testid="stButton"] > button, .stDownloadButton > button {
             background-color: #1E222B !important;
             border: 1.5px solid #107C41 !important;
             border-radius: 8px !important;
             padding: 0.4rem 0.6rem !important;
             width: 100% !important; 
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
         }
-        div[data-testid="stButton"] > button * {
+        div[data-testid="stButton"] > button *, .stDownloadButton > button * {
             color: #FFFFFF !important;
             -webkit-text-fill-color: #FFFFFF !important;
             font-weight: 700 !important;
         }
-        div[data-testid="stButton"] > button:hover {
+        div[data-testid="stButton"] > button:hover, .stDownloadButton > button:hover {
             background-color: #107C41 !important;
             border-color: #107C41 !important;
         }
@@ -120,6 +127,134 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# ---------------------------------------------------------
+# FUNCIÓN GENERADORA DE PDF CACHEADA (OPTIMIZA VELOCIDAD DE CARGA)
+# ---------------------------------------------------------
+@st.cache_data(ttl=600)
+def generar_pdf_reporte_cached(datos_kpis, datos_vigentes, datos_consolidados):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    story = []
+    styles = getSampleStyleSheet()
+
+    style_title = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=15, leading=17, textColor=colors.HexColor('#1F2937'), spaceAfter=3)
+    style_sub = ParagraphStyle('DocSub', parent=styles['Normal'], fontSize=8.5, leading=10, textColor=colors.HexColor('#4B5563'), spaceAfter=8)
+    style_h2 = ParagraphStyle('DocH2', parent=styles['Heading2'], fontSize=10.5, leading=12, textColor=colors.HexColor('#1E3A8A'), spaceBefore=6, spaceAfter=3)
+    style_cell = ParagraphStyle('DocCell', parent=styles['Normal'], fontSize=7.5, leading=9, textColor=colors.HexColor('#000000'), alignment=1)
+    style_cell_left = ParagraphStyle('DocCellLeft', parent=style_cell, alignment=0)
+    style_cell_bold = ParagraphStyle('DocCellBold', parent=style_cell, fontName='Helvetica-Bold')
+    style_cell_header = ParagraphStyle('DocCellHeader', parent=style_cell, fontName='Helvetica-Bold', textColor=colors.white, alignment=1)
+
+    fecha_hoy = datetime.date.today().strftime('%d/%m/%Y')
+    story.append(Paragraph("📈 Reporte Consolidado de Inversiones", style_title))
+    story.append(Paragraph(f"Resumen Ejecutivo y Estado de Portafolio de Inversiones | Fecha: {fecha_hoy}", style_sub))
+
+    # 1. RESUMEN KPIS CONSOLIDADOS
+    story.append(Paragraph("📌 1. Resultados Consolidados General", style_h2))
+    if datos_kpis:
+        t_kpi_data = [[Paragraph("Métrica / Indicador", style_cell_header), Paragraph("Resultado / Monto", style_cell_header)]]
+        for k, v in datos_kpis:
+            is_bold = "Intereses Netos" in k or "Capital" in k or "Renta Pasiva" in k
+            t_kpi_data.append([
+                Paragraph(str(k), style_cell_left),
+                Paragraph(str(v), style_cell_bold if is_bold else style_cell)
+            ])
+        t_kpi = Table(t_kpi_data, colWidths=[300, 252])
+        t_kpi.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1F2937')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_kpi)
+    story.append(Spacer(1, 6))
+
+    # 2. INVERSIONES VIGENTES
+    story.append(Paragraph("🟢 2. Inversiones Vigentes", style_h2))
+    if datos_vigentes:
+        headers = datos_vigentes[0]
+        rows = datos_vigentes[1:]
+        t_vig_data = [[Paragraph(str(h), style_cell_header) for h in headers]]
+        for r in rows:
+            t_vig_data.append([Paragraph(str(val), style_cell_bold if idx in [0, 4, 6, 7] else style_cell) for idx, val in enumerate(r)])
+        col_w = [110, 60, 60, 52, 70, 40, 70, 90]
+        t_vig = Table(t_vig_data, colWidths=col_w)
+        t_vig.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#059669')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_vig)
+    else:
+        story.append(Paragraph("No hay inversiones vigentes a día de hoy.", style_cell_left))
+    story.append(Spacer(1, 6))
+
+    # 3. DETALLE CONSOLIDADO DE INVERSIONES
+    story.append(Paragraph("📝 3. Detalle General de Inversiones", style_h2))
+    if datos_consolidados:
+        headers = datos_consolidados[0]
+        rows = datos_consolidados[1:]
+        t_det_data = [[Paragraph(str(h), style_cell_header) for h in headers]]
+        for r in rows:
+            t_det_data.append([Paragraph(str(val), style_cell_bold if idx in [0, 4, 6, 7] else style_cell) for idx, val in enumerate(r)])
+        col_w = [110, 60, 60, 52, 70, 40, 70, 90]
+        t_det = Table(t_det_data, colWidths=col_w)
+        t_det.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E3A8A')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_det)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def df_a_lista_pdf_detalles(df, limite=None):
+    if df is None or df.empty:
+        return []
+    target_df = df.head(limite) if limite else df
+    headers = ["Tipo Renta", "F. Inicio", "F. Fin", "Plazo", "Capital", "TNA", "Int. Neto", "Neto Recibir"]
+    rows = []
+    for _, row in target_df.iterrows():
+        tipo = str(row.get("Tipo Renta Fija", "-"))
+        entidad = str(row.get("Entidad", "-"))
+        cap = row.get("CAPITAL", 0.0)
+        tasa = row.get("TASA", 0.0)
+        dias = row.get("DIAS", 0.0)
+        f_ini = row.get("FECHA INICIO", pd.NaT)
+        f_fin = row.get("FECHA FIN", pd.NaT)
+        i_neto = row.get("INTERESE NETO", 0.0)
+        n_recibir = row.get("NETO A RECIBIR", 0.0)
+        
+        ent_acortada = acortar_entidad(entidad)
+        tipo_str = f"{tipo} ({ent_acortada})" if ent_acortada else tipo
+        f_ini_str = formato_fecha_estandar(f_ini)
+        f_fin_str = formato_fecha_estandar(f_fin)
+        dias_str = f"{int(float(dias)):,}"
+        cap_str = f"${float(cap):,.2f}"
+        tasa_f = float(tasa)
+        tasa_str = f"{tasa_f*100:,.2f}%" if tasa_f <= 1.0 else f"{tasa_f:,.2f}%"
+        i_neto_str = f"${float(i_neto):,.2f}"
+        n_recibir_str = f"${float(n_recibir):,.2f}"
+
+        rows.append([tipo_str, f_ini_str, f_fin_str, dias_str, cap_str, tasa_str, i_neto_str, n_recibir_str])
+    return [headers] + rows
+
 
 # ---------------------------------------------------------
 # HELPER: ACORTAR NOMBRE DE ENTIDAD
@@ -211,9 +346,70 @@ def formato_fecha_estandar(fecha):
     return fecha.strftime('%d/%m/%Y')
 
 # ---------------------------------------------------------
-# CABECERA & BOTÓN REFRESCAR
+# CÁLCULOS GENERALES PARA PDF CACHEADO
 # ---------------------------------------------------------
-header_col1, header_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
+min_fecha_inicio_gen = df_datos["FECHA INICIO"].min()
+max_fecha_fin_gen = df_datos["FECHA FIN"].max()
+
+dias_activos_gen = set()
+for _, row in df_datos.iterrows():
+    inicio = row["FECHA INICIO"]
+    fin = row["FECHA FIN"]
+    if pd.notna(inicio) and pd.notna(fin):
+        actual = inicio
+        while actual < fin:
+            dias_activos_gen.add(actual)
+            actual += datetime.timedelta(days=1)
+
+dias_gen = len(dias_activos_gen)
+meses_gen = dias_gen / 30.0
+anios_gen = dias_gen / 365.0
+
+tot_neto_gen = df_datos["INTERESE NETO"].sum() if "INTERESE NETO" in df_datos.columns else 0.0
+tot_retencion_gen = df_datos["RETENCION IMP, 2%"].sum() if "RETENCION IMP, 2%" in df_datos.columns else 0.0
+tot_certificado_gen = df_datos["VALOR GANADO CERTIFICADO"].sum() if "VALOR GANADO CERTIFICADO" in df_datos.columns else 0.0
+
+num_cap_pond_gen = (df_datos["CAPITAL"] * df_datos["DIAS"]).sum()
+cap_invertido_ponderado_gen = (num_cap_pond_gen / dias_gen) if dias_gen > 0 else 0.0
+
+num_pond_gen = (df_datos["CAPITAL"] * df_datos["DIAS"] * df_datos["TASA"]).sum()
+den_pond_gen = (df_datos["CAPITAL"] * df_datos["DIAS"]).sum()
+tasa_pond_gen = (num_pond_gen / den_pond_gen) if den_pond_gen > 0 else 0.0
+
+dias_linea_tiempo_gen = (max_fecha_fin_gen - min_fecha_inicio_gen).days if (pd.notna(max_fecha_fin_gen) and pd.notna(min_fecha_inicio_gen)) else 0
+meses_linea_tiempo_gen = dias_linea_tiempo_gen / 30.0 if dias_linea_tiempo_gen > 0 else 0.0
+renta_pasiva_mensual_gen = (tot_neto_gen / meses_linea_tiempo_gen) if meses_linea_tiempo_gen > 0 else 0.0
+
+tasa_str_gen = f"{tasa_pond_gen * 100:,.2f}%" if tasa_pond_gen <= 1.0 else f"{tasa_pond_gen:,.2f}%"
+
+datos_pdf_kpis = (
+    ("# Operaciones", f"{len(df_datos):,}"),
+    ("Fecha Inicio", formato_fecha_estandar(min_fecha_inicio_gen)),
+    ("Fecha Fin", formato_fecha_estandar(max_fecha_fin_gen)),
+    ("# Días", f"{int(dias_gen):,}"),
+    ("# Meses", f"{meses_gen:,.2f}"),
+    ("# Años", f"{anios_gen:,.2f}"),
+    ("Capital Invertido Ponderado", f"${cap_invertido_ponderado_gen:,.2f}"),
+    ("Intereses Netos Totales", f"${tot_neto_gen:,.2f}"),
+    ("Renta Pasiva Mensual Promedio", f"${renta_pasiva_mensual_gen:,.2f}/mes"),
+    ("Retención Impuestos", f"${tot_retencion_gen:,.2f}"),
+    ("Ganado Certificado", f"${tot_certificado_gen:,.2f}"),
+    ("Tasa Ponderada", tasa_str_gen),
+)
+
+fecha_hoy_dt = pd.Timestamp.now().normalize()
+df_vigentes_pdf = df_datos[df_datos["FECHA FIN"] > fecha_hoy_dt].copy()
+
+pdf_bytes = generar_pdf_reporte_cached(
+    datos_pdf_kpis,
+    tuple(df_a_lista_pdf_detalles(df_vigentes_pdf)),
+    tuple(df_a_lista_pdf_detalles(df_datos, limite=30))
+)
+
+# ---------------------------------------------------------
+# CABECERA & BOTONES SUPERIORES (REFRESCAR Y PDF)
+# ---------------------------------------------------------
+header_col1, header_col2, header_col3 = st.columns([2.2, 1.1, 1.2], vertical_alignment="center")
 with header_col1:
     st.markdown(
         "<h3 style='margin: 0; color: #FFFFFF !important;'>📈 Todas mis Inversiones</h3>",
@@ -223,6 +419,15 @@ with header_col2:
     if st.button("🔄 Refrescar", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
+
+with header_col3:
+    st.download_button(
+        label="📄 Exportar a PDF",
+        data=pdf_bytes,
+        file_name="Inversiones.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
 
 st.markdown("---")
 
