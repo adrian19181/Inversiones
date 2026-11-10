@@ -129,10 +129,114 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# FUNCIÓN GENERADORA DE PDF CACHEADA (OPTIMIZA VELOCIDAD DE CARGA)
+# EXTRACCIÓN DE TABLAS INFORMATIVAS PARA EL PDF
+# ---------------------------------------------------------
+def obtener_tabla_pdf_interes_ano(df_data):
+    df_temp = df_data.copy()
+    df_temp["Año FIN"] = df_temp["FECHA FIN"].dt.year
+    df_valid = df_temp.dropna(subset=["Año FIN", "Tipo Renta Fija"]).copy()
+    if df_valid.empty:
+        return []
+    df_valid["Año FIN"] = df_valid["Año FIN"].astype(int).astype(str)
+
+    pivot = pd.pivot_table(
+        df_valid,
+        index="Año FIN",
+        columns="Tipo Renta Fija",
+        values="INTERESE NETO",
+        aggfunc="sum",
+        fill_value=0.0,
+        margins=True,
+        margins_name="Total general"
+    )
+
+    cols = [c for c in pivot.columns if c != "Total general"]
+    if "Total general" in pivot.columns:
+        cols.append("Total general")
+
+    pivot = pivot[cols]
+    
+    headers = ["Año FIN"] + [str(c) for c in cols]
+    rows = []
+
+    for year, row_data in pivot.iterrows():
+        r = [str(year)]
+        for col in cols:
+            val = row_data[col]
+            r.append("-" if (val == 0.0 or pd.isna(val)) else f"${val:,.2f}")
+        rows.append(r)
+
+    return [headers] + rows
+
+def obtener_tabla_pdf_entidad(df_data):
+    df_temp = df_data.copy()
+    df_valid = df_temp.dropna(subset=["Entidad"]).copy()
+    if df_valid.empty:
+        return []
+
+    headers = ["Entidad", "Suma Int. Neto", "Tasa Ponderada", "# Ops"]
+    rows = []
+    tot_num_tasa_global = 0.0
+    tot_den_tasa_global = 0.0
+    tot_interes_global = 0.0
+    tot_ops_global = 0
+
+    for entidad, grp in df_valid.groupby("Entidad"):
+        num_tasa = (grp["CAPITAL"] * grp["DIAS"] * grp["TASA"]).sum()
+        den_tasa = (grp["CAPITAL"] * grp["DIAS"]).sum()
+        tasa_pond_ent = (num_tasa / den_tasa) if den_tasa > 0 else 0.0
+        
+        tot_int_ent = grp["INTERESE NETO"].sum()
+        num_ops_ent = len(grp)
+        
+        tot_num_tasa_global += num_tasa
+        tot_den_tasa_global += den_tasa
+        tot_interes_global += tot_int_ent
+        tot_ops_global += num_ops_ent
+
+        tasa_str = f"{tasa_pond_ent * 100:,.2f}%" if tasa_pond_ent <= 1.0 else f"{tasa_pond_ent:,.2f}%"
+        val_str = "-" if (tot_int_ent == 0.0 or pd.isna(tot_int_ent)) else f"${tot_int_ent:,.2f}"
+
+        rows.append([str(entidad), val_str, tasa_str, str(num_ops_ent)])
+
+    tasa_global = (tot_num_tasa_global / tot_den_tasa_global) if tot_den_tasa_global > 0 else 0.0
+    tasa_tot_str = f"{tasa_global * 100:,.2f}%" if tasa_global <= 1.0 else f"{tasa_global:,.2f}%"
+    tot_val_str = f"${tot_interes_global:,.2f}"
+
+    rows.append(["Total general", tot_val_str, tasa_tot_str, str(tot_ops_global)])
+    return [headers] + rows
+
+def obtener_tabla_pdf_tipo_renta(df_data):
+    df_temp = df_data.copy()
+    df_valid = df_temp.dropna(subset=["Tipo Renta Fija"]).copy()
+    if df_valid.empty:
+        return []
+
+    pivot = df_valid.groupby("Tipo Renta Fija").agg(
+        Suma_Interes=("INTERESE NETO", "sum"),
+        Cuenta_Tipo=("Tipo Renta Fija", "count")
+    ).reset_index()
+
+    headers = ["Tipo Renta Fija", "Suma Int. Neto", "# Operaciones"]
+    rows = []
+    total_sum = pivot["Suma_Interes"].sum()
+    total_count = pivot["Cuenta_Tipo"].sum()
+
+    for _, row in pivot.iterrows():
+        tipo = str(row["Tipo Renta Fija"])
+        val_sum = row["Suma_Interes"]
+        val_cnt = int(row["Cuenta_Tipo"])
+        val_sum_str = "-" if (val_sum == 0.0 or pd.isna(val_sum)) else f"${val_sum:,.2f}"
+        rows.append([tipo, val_sum_str, str(val_cnt)])
+
+    rows.append(["Total general", f"${total_sum:,.2f}", str(total_count)])
+    return [headers] + rows
+
+# ---------------------------------------------------------
+# FUNCIÓN GENERADORA DE PDF CACHEADA (INCLUYE TABLAS INFORMATIVAS)
 # ---------------------------------------------------------
 @st.cache_data(ttl=600)
-def generar_pdf_reporte_cached(datos_kpis, datos_vigentes, datos_consolidados):
+def generar_pdf_reporte_cached(datos_kpis, datos_vigentes, datos_consolidados, tabla_pdf_ano=None, tabla_pdf_entidad=None, tabla_pdf_tipo=None):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -147,7 +251,8 @@ def generar_pdf_reporte_cached(datos_kpis, datos_vigentes, datos_consolidados):
 
     style_title = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=15, leading=17, textColor=colors.HexColor('#1F2937'), spaceAfter=3)
     style_sub = ParagraphStyle('DocSub', parent=styles['Normal'], fontSize=8.5, leading=10, textColor=colors.HexColor('#4B5563'), spaceAfter=8)
-    style_h2 = ParagraphStyle('DocH2', parent=styles['Heading2'], fontSize=10.5, leading=12, textColor=colors.HexColor('#1E3A8A'), spaceBefore=6, spaceAfter=3)
+    style_h2 = ParagraphStyle('DocH2', parent=styles['Heading2'], fontSize=10.5, leading=12, textColor=colors.HexColor('#1E3A8A'), spaceBefore=8, spaceAfter=3)
+    style_h3 = ParagraphStyle('DocH3', parent=styles['Heading3'], fontSize=9.5, leading=11, textColor=colors.HexColor('#0F172A'), spaceBefore=5, spaceAfter=2)
     style_cell = ParagraphStyle('DocCell', parent=styles['Normal'], fontSize=7.5, leading=9, textColor=colors.HexColor('#000000'), alignment=1)
     style_cell_left = ParagraphStyle('DocCellLeft', parent=style_cell, alignment=0)
     style_cell_bold = ParagraphStyle('DocCellBold', parent=style_cell, fontName='Helvetica-Bold')
@@ -200,8 +305,92 @@ def generar_pdf_reporte_cached(datos_kpis, datos_vigentes, datos_consolidados):
         story.append(Paragraph("No hay inversiones vigentes a día de hoy.", style_cell_left))
     story.append(Spacer(1, 6))
 
-    # 3. DETALLE CONSOLIDADO DE INVERSIONES
-    story.append(Paragraph("📝 3. Detalle General de Inversiones", style_h2))
+    # 3. TABLAS INFORMATIVAS (NUEVAS TABLAS AGREGADAS AL PDF)
+    story.append(Paragraph("📊 3. Tablas Informativas", style_h2))
+
+    # 3.1 Interés Neto por Año
+    if tabla_pdf_ano:
+        story.append(Paragraph("💰 3.1 Interés Neto por Año", style_h3))
+        headers_ano = tabla_pdf_ano[0]
+        rows_ano = tabla_pdf_ano[1:]
+        n_cols = len(headers_ano)
+        w_first = 80
+        w_rest = (552 - w_first) / (n_cols - 1) if n_cols > 1 else 472
+        col_w_ano = [w_first] + [w_rest] * (n_cols - 1)
+
+        t_ano_data = [[Paragraph(str(h), style_cell_header) for h in headers_ano]]
+        for r_idx, r in enumerate(rows_ano):
+            is_tot_row = (r_idx == len(rows_ano) - 1)
+            t_ano_data.append([
+                Paragraph(str(val), style_cell_bold if (is_tot_row or idx == len(r)-1) else style_cell)
+                for idx, val in enumerate(r)
+            ])
+        t_ano = Table(t_ano_data, colWidths=col_w_ano)
+        t_ano.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
+            ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#BAE6FD')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_ano)
+        story.append(Spacer(1, 4))
+
+    # 3.2 Resumen por Entidad
+    if tabla_pdf_entidad:
+        story.append(Paragraph("🏦 3.2 Resumen por Entidad", style_h3))
+        headers_ent = tabla_pdf_entidad[0]
+        rows_ent = tabla_pdf_entidad[1:]
+        col_w_ent = [212, 120, 110, 110]
+
+        t_ent_data = [[Paragraph(str(h), style_cell_header) for h in headers_ent]]
+        for r_idx, r in enumerate(rows_ent):
+            is_tot_row = (r_idx == len(rows_ent) - 1)
+            t_ent_data.append([
+                Paragraph(str(val), style_cell_bold if is_tot_row else style_cell)
+                for idx, val in enumerate(r)
+            ])
+        t_ent = Table(t_ent_data, colWidths=col_w_ent)
+        t_ent.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
+            ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#BAE6FD')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_ent)
+        story.append(Spacer(1, 4))
+
+    # 3.3 Resumen por Tipo de Renta
+    if tabla_pdf_tipo:
+        story.append(Paragraph("📑 3.3 Resumen por Tipo de Renta", style_h3))
+        headers_tipo = tabla_pdf_tipo[0]
+        rows_tipo = tabla_pdf_tipo[1:]
+        col_w_tipo = [232, 160, 160]
+
+        t_tipo_data = [[Paragraph(str(h), style_cell_header) for h in headers_tipo]]
+        for r_idx, r in enumerate(rows_tipo):
+            is_tot_row = (r_idx == len(rows_tipo) - 1)
+            t_tipo_data.append([
+                Paragraph(str(val), style_cell_bold if is_tot_row else style_cell)
+                for idx, val in enumerate(r)
+            ])
+        t_tipo = Table(t_tipo_data, colWidths=col_w_tipo)
+        t_tipo.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
+            ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#BAE6FD')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#000000')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ]))
+        story.append(t_tipo)
+        story.append(Spacer(1, 6))
+
+    # 4. DETALLE CONSOLIDADO DE INVERSIONES
+    story.append(Paragraph("📝 4. Detalle General de Inversiones", style_h2))
     if datos_consolidados:
         headers = datos_consolidados[0]
         rows = datos_consolidados[1:]
@@ -403,7 +592,10 @@ df_vigentes_pdf = df_datos[df_datos["FECHA FIN"] > fecha_hoy_dt].copy()
 pdf_bytes = generar_pdf_reporte_cached(
     datos_pdf_kpis,
     tuple(df_a_lista_pdf_detalles(df_vigentes_pdf)),
-    tuple(df_a_lista_pdf_detalles(df_datos, limite=30))
+    tuple(df_a_lista_pdf_detalles(df_datos, limite=30)),
+    tuple(obtener_tabla_pdf_interes_ano(df_datos)),
+    tuple(obtener_tabla_pdf_entidad(df_datos)),
+    tuple(obtener_tabla_pdf_tipo_renta(df_datos))
 )
 
 # ---------------------------------------------------------
